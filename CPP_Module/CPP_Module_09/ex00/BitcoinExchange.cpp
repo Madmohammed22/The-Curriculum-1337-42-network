@@ -24,39 +24,27 @@ bool ft_keep_truck(char *split_data_file, int target){
 
     std::vector<int> data;
     int j = 0;
-    int k = 0;
     std::string str;
     if (target == 0){
         for (size_t i = 0; i < strlen(split_data_file); i++){
             if (split_data_file[i] == '-'){
                 str = strdup(split_data_file);
-                data.push_back(atoi(str.substr(j, i - 1).c_str()));
+                data.push_back(atoi(str.substr(j, i).c_str()));
                 j = i + 1;
-                k++;
-            }
-            if (k == 2){
-                data.push_back(atoi(str.substr(i + 1, strlen(str.c_str())).c_str()));
-                break;
             }
         }
+        data.push_back(atoi(str.substr(j, strlen(split_data_file) - 1).c_str()));
+
     }
-    // std::cout << "----------> " << j << " " << str << std::endl;
-    // std::cout << "----------" << std::endl;
-    // std::cout << "-> " << str.substr(j, strlen(split_data_file) - 1) << std::endl;
-    // data.push_back(atoi(str.substr(j, strlen(split_data_file)).c_str()));
 
     std::vector<int>::iterator first = data.begin();
     std::vector<int>::iterator end = data.end();
-    int i = 0;
     while (first != end)
     {
-        if (i == 2)
-            break;
         std::cout << *first << std::endl;
         first++;
-        i++;
     }
-
+    std::cout << "--------------" << std::endl;
     return true;
 }
 
