@@ -141,14 +141,6 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
         else
             return false;
     }
-
-    std::vector<int>::iterator first = data.begin();
-    std::vector<int>::iterator end = data.end();
-    while (first != end)
-    {
-        // std::cout << *first << std::endl;
-        first++;
-    }
     return true;
 }
 
@@ -210,8 +202,8 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
             if (AddContenetFile_IfValid(data, scalar, "|") == true && scalar->was_negative_number != 1 
             && scalar->from_large_number != 1 && scalar->wrong_format != 1)
             {
+                data = trim(data);
                 data_csv_txt.push_back(data);
-                // 2011-01-03 | 3
                 outputFile << data.substr(0, data.find("|") - 1) + " =>" + data.substr(data.find("|") + 1, data.length()) +  "\n";
             }
             else
@@ -237,6 +229,7 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
     {
         if (data.compare("date,exchange_rate") != 0)
         {
+            data = trim(data);
             if (AddContenetFile_IfValid(data, scalar, ",") == true)
                 this->data_input_csv.push_back(data);
         }
