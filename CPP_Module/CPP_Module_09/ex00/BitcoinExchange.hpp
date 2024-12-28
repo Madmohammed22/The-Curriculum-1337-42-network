@@ -1,7 +1,6 @@
 #ifndef BITCOINEXCHANGE_HPP
 #define BITCOINEXCHANGE_HPP
 
-
 #include <complex>
 #include <iostream>
 #include <stack>
@@ -16,24 +15,26 @@
 #include <fstream>
 #include <string>
 
-class BitcoinExchange{
+class BitcoinExchange
+{
 
-    private:
-        int was_int;
-        int was_float;
+private:
+    int was_int;
+    int was_float;
+    std::list<std::string> data_input_csv;
 
-    public:
-        BitcoinExchange();
-        BitcoinExchange(const BitcoinExchange& Init);
-        BitcoinExchange& operator=(const BitcoinExchange& Init);
-        ~BitcoinExchange();
+public:
+    BitcoinExchange();
+    BitcoinExchange(const BitcoinExchange &Init);
+    BitcoinExchange &operator=(const BitcoinExchange &Init);
+    ~BitcoinExchange();
 
-    public:
-        std::list<std::string> ReadFileCSV(std::string file_csv, BitcoinExchange *scalar);
-        bool AddContenetFile_IfValid(std::string file_data, BitcoinExchange *scalar);
-        void DisplayDataCSV(std::list<std::string> data_csv);
-        bool scanString(std::string str, BitcoinExchange *scalar);
-        bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
+public:
+    std::list<std::string> ReadFileCSV(std::string file_csv, BitcoinExchange *scalar);
+    bool AddContenetFile_IfValid(std::string file_data, BitcoinExchange *scalar, std::string seprator);
+    void DisplayDataCSV(std::list<std::string> data_csv);
+    bool scanString(std::string str, BitcoinExchange *scalar);
+    bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
 };
 
 #endif

@@ -1,15 +1,11 @@
 #include "BitcoinExchange.hpp"
 
-BitcoinExchange::BitcoinExchange()
+BitcoinExchange::BitcoinExchange() : was_int(0), was_float(0)
 {
-    was_int = 0;
-    was_float = 0;
-    std::cout << "[BitcoinExchange] Default constructor is created" << std::endl;
 }
 
 BitcoinExchange::BitcoinExchange(const BitcoinExchange &Init) : was_int(Init.was_int), was_float(Init.was_float)
 {
-    std::cout << "[BitcoinExchange] Copy constructor is created" << std::endl;
 }
 
 BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &Init)
@@ -18,13 +14,11 @@ BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &Init)
         return *this;
     this->was_float = Init.was_float;
     this->was_int = Init.was_int;
-    std::cout << "[BitcoinExchange] Assingment operator constructor is created" << std::endl;
     return *this;
 }
 
 BitcoinExchange::~BitcoinExchange()
 {
-    std::cout << "[BitcoinExchange] Distructor is created" << std::endl;
 }
 
 bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar)
@@ -123,7 +117,6 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
                 data.push_back(atoi(str.substr(str.find(",") + 1, str.length()).c_str()));
             else
             {
-                std::cout << atof(str.substr(str.find(",") + 1, str.length()).c_str()) << std::endl;
                 data.push_back(atof(str.substr(str.find(",") + 1, str.length()).c_str()));
             }
         }
@@ -138,53 +131,103 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
         // std::cout << *first << std::endl;
         first++;
     }
-    std::cout << "--------------" << std::endl;
     return true;
 }
 
-bool BitcoinExchange::AddContenetFile_IfValid(std::string data_file, BitcoinExchange *scalar)
+bool BitcoinExchange::AddContenetFile_IfValid(std::string data_file, BitcoinExchange *scalar, std::string seprator)
 {
     char *dest = NULL;
     bool keep_truck = false;
     dest = strdup(data_file.c_str());
-    char *split_data_file = std::strtok(dest, ",");
-    if (KeepTruckOfString(split_data_file, 11, scalar) == true)
-        keep_truck = true;
-    split_data_file = std::strtok(NULL, ",");
-    if (KeepTruckOfString(split_data_file, 1, scalar) == true && keep_truck == true)
-        keep_truck = true;
+    if (seprator.compare(",") == 0)
+    {
+        if (data_file.find(",") == std::string::npos)
+            return false;
+        char *split_data_file = std::strtok(dest, ",");
+        if (KeepTruckOfString(split_data_file, 0, scalar) == true)
+            keep_truck = true;
+        split_data_file = std::strtok(NULL, ",");
+        if (KeepTruckOfString(split_data_file, 1, scalar) == true && keep_truck == true)
+            keep_truck = true;
+    }
+    else if (seprator.compare("|") == 0)
+    {
+        std::cout << data_file << std::endl;
+        if (data_file.find("|") == std::string::npos){
+            std::cout << "-> "<< data_file << std::endl;
+            return false;
+        }
+        char *split_data_file = std::strtok(dest, "|");
+        std::cout << "---> "<< split_data_file << std::endl;
+        if (KeepTruckOfString(split_data_file, 0, scalar) == true){
+            std::cout << "I was here " << std::endl;
+            keep_truck = true;
+        }
+        else{
+            std::cout << "I was here but! " << std::endl;
+
+        }
+            
+        split_data_file = std::strtok(NULL, "|");
+        if (keep_truck == true && KeepTruckOfString(split_data_file, 1, scalar) == true)
+            keep_truck = true;
+        else
+        {
+            std::cout << "|-> "<< split_data_file << std::endl;
+            keep_truck = false;
+        }
+
+        // exit(0);
+    }
     return keep_truck;
 }
 
-std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_csv, BitcoinExchange *scalar)
+std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, BitcoinExchange *scalar)
 {
 
-    std::ifstream file(file_csv.c_str());
-    std::list<std::string> data_csv;
-    if (!file.is_open())
+    std::ifstream file(file_txt.c_str());
+    std::list<std::string> data_csv_txt;
+    std::ifstream data_base_as_file("data.csv");
+    if (!file.is_open() || !data_base_as_file.is_open())
     {
-        std::cout << "Error opening the fil e!" << std::endl;
+        std::cout << "Error: could not open file." << std::endl;
         _Exit(1);
     }
     std::string data;
     while (std::getline(file, data))
     {
-        if (AddContenetFile_IfValid(data, scalar) == true)
-            data_csv.push_back(data);
+        if (data.compare("date | value") != 0){
+                // std::cout << data << std::endl;
+            if (AddContenetFile_IfValid(data, scalar, "|") == true){
+                data_csv_txt.push_back(data);
+            }
+        }
     }
-    data_csv.remove("date,exchange_rate");
+    data.clear();
+    while (std::getline(data_base_as_file, data))
+    {
+        if (data.compare("date,exchange_rate") != 0){
+            if (AddContenetFile_IfValid(data, scalar, ",") == true)
+                this->data_input_csv.push_back(data);
+        }
+    }
+
     file.close();
-    return data_csv;
+    data_base_as_file.close();
+    return data_csv_txt;
 }
 
-void BitcoinExchange::DisplayDataCSV(std::list<std::string> data_csv)
+void BitcoinExchange::DisplayDataCSV(std::list<std::string> data_csv_txt)
 {
-    std::list<std::string>::iterator first = data_csv.begin();
-    std::list<std::string>::iterator end = data_csv.end();
+    (void)data_csv_txt;
+    std::list<std::string>::iterator first = data_csv_txt.begin();
+    std::list<std::string>::iterator end = data_csv_txt.end();
+    // std::list<std::string>::iterator first = this->data_input_csv.begin();
+    // std::list<std::string>::iterator end = this->data_input_csv.end();
 
     while (first != end)
     {
-        std::cout<< *first << std::endl;
+        std::cout << *first << std::endl;
         first++;
     }
 }
