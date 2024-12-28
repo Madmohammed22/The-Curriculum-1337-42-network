@@ -1,0 +1,9 @@
+Error: bad input => 2011-01-03 | 3
+Error: bad input => 2011-01-03 | 2
+Error: bad input => 2011-01-03 | 1
+Error: bad input => 2011-01-03 | 1.2
+Error: bad input => 2011-01-09 | 1
+Error: bad input => 2012-01-11 | -1
+Error: bad input => 2001-42-42 
+Error: bad input => 2012-01-11 | 1
+Error: bad input => 2012-01-11 | 2147483648
