@@ -21,6 +21,9 @@ class BitcoinExchange
 private:
     int was_int;
     int was_float;
+    int from_large_number;
+    int was_negative_number;
+    int wrong_format;
     std::list<std::string> data_input_csv;
 
 public:
