@@ -1,6 +1,8 @@
 #ifndef BITCOINEXCHANGE_HPP
 #define BITCOINEXCHANGE_HPP
 
+
+#include <complex>
 #include <iostream>
 #include <stack>
 #include <list>
@@ -16,6 +18,10 @@
 
 class BitcoinExchange{
 
+    private:
+        int was_int;
+        int was_float;
+
     public:
         BitcoinExchange();
         BitcoinExchange(const BitcoinExchange& Init);
@@ -23,9 +29,11 @@ class BitcoinExchange{
         ~BitcoinExchange();
 
     public:
-        std::list<std::string> ReadFileCSV(std::string file_csv);
-        bool AddContenetFile_IfValid(std::string file_data);
+        std::list<std::string> ReadFileCSV(std::string file_csv, BitcoinExchange *scalar);
+        bool AddContenetFile_IfValid(std::string file_data, BitcoinExchange *scalar);
         void DisplayDataCSV(std::list<std::string> data_csv);
+        bool scanString(std::string str, BitcoinExchange *scalar);
+        bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
 };
 
 #endif

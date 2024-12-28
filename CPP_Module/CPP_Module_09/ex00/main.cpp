@@ -6,7 +6,8 @@ int main(int argc, char **argv){
     }
 
     std::string file_csv = argv[1];
-    BitcoinExchange bitcoinExchange;
-    bitcoinExchange.DisplayDataCSV(bitcoinExchange.ReadFileCSV(file_csv));
+    BitcoinExchange *bitcoinExchange = new BitcoinExchange();
+    bitcoinExchange->DisplayDataCSV(bitcoinExchange->ReadFileCSV(file_csv, bitcoinExchange));
+    delete bitcoinExchange;
     return 0;
 }
