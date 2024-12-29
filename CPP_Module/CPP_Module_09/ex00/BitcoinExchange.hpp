@@ -25,6 +25,7 @@ private:
     int from_large_number;
     int was_negative_number;
     int wrong_format;
+    int scan_date;
     std::list<std::string> data_input_csv;
     std::vector<int> contains_year_month_day;
     std::vector<int> contains_value;
@@ -38,7 +39,7 @@ public:
     std::list<std::string> ReadFileCSV(std::string file_csv, BitcoinExchange *scalar);
     bool AddContenetFile_IfValid(std::string file_data, BitcoinExchange *scalar, std::string seprator);
     void DisplayDataCSV(std::list<std::string> data_csv);
-    bool scanString(std::string str, BitcoinExchange *scalar, int target);
+    bool scanString(std::string str, BitcoinExchange *scalar);
     bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
     int proccess_correct_data(std::string line);
 };

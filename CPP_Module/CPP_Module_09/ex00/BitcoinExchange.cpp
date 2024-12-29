@@ -1,10 +1,10 @@
 #include "BitcoinExchange.hpp"
 
-BitcoinExchange::BitcoinExchange() : was_int(0), was_float(0), from_large_number(0), wrong_format(0)
+BitcoinExchange::BitcoinExchange() : was_int(0), was_float(0), from_large_number(0), wrong_format(0), scan_date(0)
 {
 }
 
-BitcoinExchange::BitcoinExchange(const BitcoinExchange &Init) : was_int(Init.was_int), was_float(Init.was_float), from_large_number(Init.from_large_number), wrong_format(Init.wrong_format)
+BitcoinExchange::BitcoinExchange(const BitcoinExchange &Init) : was_int(Init.was_int), was_float(Init.was_float), from_large_number(Init.from_large_number), wrong_format(Init.wrong_format), scan_date(Init.scan_date)
 {
 }
 
@@ -21,7 +21,7 @@ BitcoinExchange::~BitcoinExchange()
 {
 }
 
-bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int target)
+bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar)
 {
     double number = 0;
     if (((str.at(0) == '-' || str.at(0) == '+') && isdigit(str.at(1))) || isdigit(str.at(0)))
@@ -80,15 +80,22 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int t
         return false;
 
     scalar->was_int = 1;
-    if (scalar->was_float == 1 && target == 1){
-        scalar->was_float = 0;
-        scalar->was_int = 0;
-        return false;
-    }
     if (scalar->was_float == 1)
         scalar->was_int = 0;
+    if (scalar->scan_date == 1)
+        return false;
+    // if (scalar->was_int == 1 && this->scan_date == 1 && scalar->was_float == 1)
+    // {
+    //     this->scan_date = 0;
+    //     scalar->was_float = 0;
+    //     scalar->was_int = 0;
+    //     return false;
+    // }
+
     if (atoi(str.c_str()) < 0)
+    {
         was_negative_number = 1;
+    }
     return true;
 }
 
@@ -116,8 +123,11 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
         {
             if (split_data_file[i] == '-')
             {
-                if (scanString(str.substr(j, i - j), scalar, 0) == true)
+                if (scanString(str.substr(j, i - j), scalar) == true){
+                    // if (scalar->was_float == 1)
+                    //     return this->wrong_format = 1, false;
                     data.push_back(atoi(str.substr(j, i - j).c_str()));
+                }
                 else
                 {
                     this->wrong_format = 1;
@@ -126,9 +136,10 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
                 j = i + 1;
             }
         }
-        if (scanString(str.substr(j, strlen(split_data_file) - 1), scalar, 1) == true)
+        if (scanString(str.substr(j, strlen(split_data_file) - 1), scalar) == true)
             data.push_back(atoi(str.substr(j, strlen(split_data_file) - 1).c_str()));
-        else{
+        else
+        {
             this->wrong_format = 1;
             return false;
         }
@@ -137,7 +148,7 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
     else if (target == 1)
     {
         str = strdup(split_data_file);
-        if (scanString(str.substr(str.find(",") + 1, str.length()), scalar, 33) == true)
+        if (scanString(str.substr(str.find(",") + 1, str.length()), scalar) == true)
         {
             if (scalar->was_int == 1 && was_float == 0)
                 data.push_back(atoi(str.substr(str.find(",") + 1, str.length()).c_str()));
@@ -168,8 +179,10 @@ bool BitcoinExchange::AddContenetFile_IfValid(std::string data_file, BitcoinExch
         split_data_file = std::strtok(NULL, "|");
         if (keep_truck == true && KeepTruckOfString(split_data_file, 1, scalar) == true)
             keep_truck = true;
-        else
-            keep_truck = false;
+        else{
+            // scalar->wrong_format = 0;
+            return false;
+        }
     }
 
     if (seprator.compare(",") == 0)
@@ -203,7 +216,7 @@ int closestNumbers(std::list<std::string> vec, int number)
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
         if (atoi(current.c_str()) == number)
-            closest_numbers.first = atoi(current.c_str());  
+            closest_numbers.first = atoi(current.c_str());
         if (atoi(current.c_str()) < number &&
             (atoi(current.c_str()) > closest_numbers.first || closest_numbers.first == number))
         {
@@ -248,29 +261,11 @@ int BitcoinExchange::proccess_correct_data(std::string line)
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
         if (target_to_search == atoi(current.c_str()))
-        {
-            // std::cout << save << std::endl;
-            // return atoi(current.c_str());
-            std::cout << "I was here" << std::endl;
             return target_to_search;
+        else
+        {
+            return closestNumbers(this->data_input_csv, target_to_search);
         }
-        else{
-
-            int result = closestNumbers(this->data_input_csv, target_to_search);
-            // std::cout << "target_to_search: " << target_to_search <<" |result " << result <<  std::endl;
-            // std::cout << "current " << current.c_str() << std::endl;
-            // return atoi(current.c_str());
-            return result;
-            // return closestNumbers(this->data_input_csv, target_to_search);
-        }
-        // (void)result;
-        // if (result <= target_to_search) // if (target_to_search <= closestNumbers(this->data_input_csv, target_to_search))
-        // {
-        //     int result = closestNumbers(this->data_input_csv, target_to_search);
-        //     std::cout << "closestNumbers : " << result << std::endl;
-        //     return result;
-        // }
-        // current.clear();
         start++;
     }
     return target_to_search;
@@ -302,6 +297,7 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
                 this->data_input_csv.push_back(line);
         }
     }
+    scalar->wrong_format = 0;
     line.clear();
     while (std::getline(file, line))
     {
@@ -312,26 +308,19 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
             if (AddContenetFile_IfValid(line, scalar, "|") == true && scalar->was_negative_number != 1 && scalar->from_large_number != 1 && scalar->wrong_format != 1)
             {
                 std::cout << "proccess_correct_data : " << proccess_correct_data(line) << std::endl;
-                std::string  n = "10";
-                outputFile << line.substr(0, line.find("|") - 1) + " =>" + line.substr(line.find("|") + 1, line.length()) + " = " + n + "\n";
+                outputFile << line.substr(0, line.find("|") - 1) + " =>" + line.substr(line.find("|") + 1, line.length()) + " = " + "\n";
             }
             else
             {
                 if (scalar->from_large_number == 1)
-                {
-                    scalar->from_large_number = 0;
                     outputFile << "Error: too large a number.\n";
-                }
                 if (scalar->was_negative_number == 1)
-                {
-                    scalar->was_negative_number = 0;
                     outputFile << "Error: not a positive number.\n";
-                }
                 if (scalar->wrong_format == 1)
-                {
-                    scalar->wrong_format = 0;
                     outputFile << "Error: bad input => " + line + "\n";
-                }
+                scalar->wrong_format = 0;
+                scalar->was_negative_number = 0;
+                scalar->from_large_number = 0;
             }
         }
     }
