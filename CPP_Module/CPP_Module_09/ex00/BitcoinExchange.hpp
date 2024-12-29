@@ -40,7 +40,7 @@ public:
     void DisplayDataCSV(std::list<std::string> data_csv);
     bool scanString(std::string str, BitcoinExchange *scalar);
     bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
-    double proccess_correct_data(std::string line);
+    int proccess_correct_data(std::string line);
 };
 
 #endif
