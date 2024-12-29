@@ -38,7 +38,7 @@ public:
     std::list<std::string> ReadFileCSV(std::string file_csv, BitcoinExchange *scalar);
     bool AddContenetFile_IfValid(std::string file_data, BitcoinExchange *scalar, std::string seprator);
     void DisplayDataCSV(std::list<std::string> data_csv);
-    bool scanString(std::string str, BitcoinExchange *scalar);
+    bool scanString(std::string str, BitcoinExchange *scalar, int target);
     bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
     int proccess_correct_data(std::string line);
 };
