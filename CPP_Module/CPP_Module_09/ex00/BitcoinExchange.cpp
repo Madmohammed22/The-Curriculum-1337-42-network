@@ -116,6 +116,7 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
                     data.push_back(atoi(str.substr(j, i - j).c_str()));
                 else
                 {
+                    this->wrong_format = 1;
                     return false;
                 }
                 j = i + 1;
@@ -152,7 +153,7 @@ bool BitcoinExchange::AddContenetFile_IfValid(std::string data_file, BitcoinExch
     if (seprator.compare("|") == 0)
     {
         if (data_file.find("|") == std::string::npos)
-            return scalar->wrong_format = 1,  false;
+            return scalar->wrong_format = 1, false;
         char *split_data_file = std::strtok(dest, "|");
         if (KeepTruckOfString(split_data_file, 0, scalar) == true)
             keep_truck = true;
@@ -169,15 +170,15 @@ bool BitcoinExchange::AddContenetFile_IfValid(std::string data_file, BitcoinExch
             return false;
         char *split_data_file = std::strtok(dest, ",");
         if (KeepTruckOfString(split_data_file, 0, scalar) == true)
-        {
             keep_truck = true;
-        }
         split_data_file = std::strtok(NULL, ",");
         if (KeepTruckOfString(split_data_file, 1, scalar) == true && keep_truck == true)
-        {
             keep_truck = true;
-        }
+        else
+            keep_truck = false;
+        
     }
+
     return keep_truck;
 }
 
@@ -185,63 +186,74 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
 {
 
     std::ifstream file(file_txt.c_str());
-    std::ofstream outputFile("outputFile.txt");
+    std::string filename = "Result.txt";
+    std::ofstream outputFile(filename.c_str());
     std::list<std::string> data_csv_txt;
-    std::ifstream data_base_as_file("data.csv");
-    if (!file.is_open() || !data_base_as_file.is_open() || !outputFile.is_open())
+
+    std::ifstream data_base("data.csv");
+
+    if (!file.is_open() || !data_base.is_open() || !outputFile.good())
     {
         std::cout << "Error: could not open file." << std::endl;
         _Exit(1);
     }
-    std::string data;
-    while (std::getline(file, data))
+    std::string line;
+    while (std::getline(file, line))
     {
-        if (data.compare("date | value") != 0)
+        line = trim(line);
+        if (line.compare("date | value") != 0)
         {
 
-            if (AddContenetFile_IfValid(data, scalar, "|") == true && scalar->was_negative_number != 1 
-            && scalar->from_large_number != 1 && scalar->wrong_format != 1)
+            if (AddContenetFile_IfValid(line, scalar, "|") == true && scalar->was_negative_number != 1 && scalar->from_large_number != 1 && scalar->wrong_format != 1)
             {
-                data = trim(data);
-                data_csv_txt.push_back(data);
-                outputFile << data.substr(0, data.find("|") - 1) + " =>" + data.substr(data.find("|") + 1, data.length()) +  "\n";
+                outputFile << line.substr(0, line.find("|") - 1) + " =>" + line.substr(line.find("|") + 1, line.length()) + "\n";
             }
             else
             {
-                if (scalar->from_large_number == 1){
+                if (scalar->from_large_number == 1)
+                {
                     scalar->from_large_number = 0;
                     outputFile << "Error: too large a number.\n";
                 }
-                if (scalar->was_negative_number == 1){
+                if (scalar->was_negative_number == 1)
+                {
                     scalar->was_negative_number = 0;
                     outputFile << "Error: not a positive number.\n";
                 }
                 if (scalar->wrong_format == 1)
                 {
                     scalar->wrong_format = 0;
-                    outputFile << "Error: bad input => " + data + "\n";
+                    outputFile << "Error: bad input => " + line + "\n";
                 }
             }
         }
     }
-    data.clear();
-    while (std::getline(data_base_as_file, data))
+    outputFile.close();
+    line.clear();
+    while (std::getline(data_base, line))
     {
-        if (data.compare("date,exchange_rate") != 0)
+        if (line.compare("date,exchange_rate") != 0)
         {
-            data = trim(data);
-            if (AddContenetFile_IfValid(data, scalar, ",") == true)
-                this->data_input_csv.push_back(data);
+            line = trim(line);
+            if (AddContenetFile_IfValid(line, scalar, ",") == true)
+                this->data_input_csv.push_back(line);
         }
     }
-
+    line.clear();
+    data_csv_txt.clear();
+    std::ifstream inputFile(filename.c_str());
+    while (std::getline(inputFile, line))
+        data_csv_txt.push_back(line);
+    
+    inputFile.close();
     file.close();
-    data_base_as_file.close();
+    data_base.close();
     return data_csv_txt;
 }
 
 void BitcoinExchange::DisplayDataCSV(std::list<std::string> data_csv_txt)
 {
+
     std::list<std::string>::iterator first = data_csv_txt.begin();
     std::list<std::string>::iterator end = data_csv_txt.end();
 
