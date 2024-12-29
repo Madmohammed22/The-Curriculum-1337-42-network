@@ -185,18 +185,23 @@ bool BitcoinExchange::AddContenetFile_IfValid(std::string data_file, BitcoinExch
     return keep_truck;
 }
 
-int BitcoinExchange::proccess_correct_data(std::string line){
+double BitcoinExchange::proccess_correct_data(std::string line){
     line = line.substr(0, line.find(" "));
-    std::cout <<  "[" << line << "]" <<  std::endl;
-    std::vector<int>::iterator first = this->contains_year_month_day.begin();
-    std::vector<int>::iterator last = this->contains_year_month_day.end();
-    while (first != last)
-    {
-        std::cout << *first << " " <<  std::ends;
-        first++;
-    }
-    std::cout << "\n";
-    return 0;
+    int Year = this->contains_year_month_day[0];
+    int Month = this->contains_year_month_day[1];
+    int Day = this->contains_year_month_day[2];
+    unsigned int days = (Year - 1970) + (Month );
+    std::cout << Year << " " << Month << " " << Day << std::endl;
+    // std::cout <<  "[" << line << "]" <<  std::endl;
+    // std::vector<int>::iterator first = this->contains_year_month_day.begin();
+    // std::vector<int>::iterator last = this->contains_year_month_day.end();
+    // while (first != last)
+    // {
+    //     std::cout << *first << " " <<  std::ends;
+    //     first++;
+    // }
+    // std::cout << "\n";
+    return 2.3;
 }
 std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, BitcoinExchange *scalar)
 {

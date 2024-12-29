@@ -14,7 +14,7 @@
 #include <bits/stdc++.h>
 #include <fstream>
 #include <string>
-    
+
 
 class BitcoinExchange
 {
@@ -40,7 +40,7 @@ public:
     void DisplayDataCSV(std::list<std::string> data_csv);
     bool scanString(std::string str, BitcoinExchange *scalar);
     bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
-    int proccess_correct_data(std::string line);
+    double proccess_correct_data(std::string line);
 };
 
 #endif
