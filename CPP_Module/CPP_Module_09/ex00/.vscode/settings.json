@@ -5,7 +5,8 @@
         "ostream": "cpp",
         "iosfwd": "cpp",
         "fstream": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "tuple": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

@@ -14,6 +14,7 @@
 #include <bits/stdc++.h>
 #include <fstream>
 #include <string>
+    
 
 class BitcoinExchange
 {
@@ -25,7 +26,8 @@ private:
     int was_negative_number;
     int wrong_format;
     std::list<std::string> data_input_csv;
-
+    std::vector<int> contains_year_month_day;
+    std::vector<int> contains_value;
 public:
     BitcoinExchange();
     BitcoinExchange(const BitcoinExchange &Init);
@@ -38,6 +40,7 @@ public:
     void DisplayDataCSV(std::list<std::string> data_csv);
     bool scanString(std::string str, BitcoinExchange *scalar);
     bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
+    int proccess_correct_data(std::string line);
 };
 
 #endif
