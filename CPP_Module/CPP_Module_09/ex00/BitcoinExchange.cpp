@@ -82,8 +82,8 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar)
     scalar->was_int = 1;
     if (scalar->was_float == 1)
         scalar->was_int = 0;
-    if (scalar->scan_date == 1)
-        return false;
+    // if (scalar->scan_date == 1 && scalar->was_float == 1)
+    //     return false;
     // if (scalar->was_int == 1 && this->scan_date == 1 && scalar->was_float == 1)
     // {
     //     this->scan_date = 0;
@@ -124,8 +124,11 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
             if (split_data_file[i] == '-')
             {
                 if (scanString(str.substr(j, i - j), scalar) == true){
-                    // if (scalar->was_float == 1)
-                    //     return this->wrong_format = 1, false;
+                    if (scalar->was_float == 1){
+                        scalar->was_float = 0;
+                        scalar->scan_date = 0;
+                        return this->wrong_format = 1, false;
+                    }
                     data.push_back(atoi(str.substr(j, i - j).c_str()));
                 }
                 else
@@ -160,7 +163,6 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
         else
             return false;
     }
-
     return true;
 }
 
@@ -174,8 +176,10 @@ bool BitcoinExchange::AddContenetFile_IfValid(std::string data_file, BitcoinExch
         if (data_file.find("|") == std::string::npos)
             return scalar->wrong_format = 1, false;
         char *split_data_file = std::strtok(dest, "|");
+        scalar->scan_date = 1;
         if (KeepTruckOfString(split_data_file, 0, scalar) == true)
             keep_truck = true;
+        scalar->scan_date = 0;
         split_data_file = std::strtok(NULL, "|");
         if (keep_truck == true && KeepTruckOfString(split_data_file, 1, scalar) == true)
             keep_truck = true;
@@ -297,7 +301,13 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
                 this->data_input_csv.push_back(line);
         }
     }
+    scalar->was_int = 0;
+    scalar->was_float = 0;
+    scalar->from_large_number = 0;
+    scalar->was_negative_number = 0;
     scalar->wrong_format = 0;
+    scalar->scan_date = 0;
+    
     line.clear();
     while (std::getline(file, line))
     {
