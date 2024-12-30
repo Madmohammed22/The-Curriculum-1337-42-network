@@ -26,6 +26,9 @@ private:
     int was_negative_number;
     int wrong_format;
     int scan_date;
+    int current_day;
+    int current_month;
+    int current_year;
     std::list<std::string> data_input_csv;
     std::vector<int> contains_year_month_day;
     std::vector<int> contains_value;

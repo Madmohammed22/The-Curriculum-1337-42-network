@@ -2,10 +2,29 @@
 
 BitcoinExchange::BitcoinExchange() : was_int(0), was_float(0), from_large_number(0), wrong_format(0), scan_date(0)
 {
+    char buf[100];
+    time_t t;
+    struct tm *timeptr, result;
+
+    setlocale(LC_ALL, "/QSYS.LIB/EN_US.LOCALE");
+    t = time(NULL);
+    timeptr = localtime(&t);
+    strftime(buf, sizeof(buf), "%a %m/%d/%Y %r", timeptr);
+    if (strptime(buf, "%a %m/%d/%Y %r", &result) == NULL)
+        printf("\nstrptime failed\n");
+    else
+    {
+        this->current_year = result.tm_year + 1900;
+        this->current_month = result.tm_mon;
+        this->current_day = result.tm_mday;
+    }
 }
 
 BitcoinExchange::BitcoinExchange(const BitcoinExchange &Init) : was_int(Init.was_int), was_float(Init.was_float), from_large_number(Init.from_large_number), wrong_format(Init.wrong_format), scan_date(Init.scan_date)
 {
+    this->current_year = Init.current_year;
+    this->current_month = Init.current_month;
+    this->current_day = Init.current_day;
 }
 
 BitcoinExchange &BitcoinExchange::operator=(const BitcoinExchange &Init)
@@ -68,13 +87,15 @@ void BitcoinExchange::resetFlags(BitcoinExchange *scalar)
     scalar->scan_date = 0;
 }
 
-int count_underscores(std::string s) {
-  int count = 0;
+int count_underscores(std::string s)
+{
+    int count = 0;
 
-  for (size_t i = 0; i < s.size(); i++)
-    if (s[i] == '-') count++;
+    for (size_t i = 0; i < s.size(); i++)
+        if (s[i] == '-')
+            count++;
 
-  return count;
+    return count;
 }
 
 bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int flag)
@@ -346,7 +367,6 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
 
 void BitcoinExchange::DisplayDataCSV(std::list<std::string> data_csv_txt)
 {
-
     std::list<std::string>::iterator first = data_csv_txt.begin();
     std::list<std::string>::iterator end = data_csv_txt.end();
     while (first != end)
