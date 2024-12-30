@@ -192,6 +192,8 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
 
 bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExchange *scalar, std::string seprator)
 {
+    if (data_file.empty())
+        return false;
     char *dest = NULL;
     bool keep_truck = false;
     dest = strdup(trim(data_file).c_str());
