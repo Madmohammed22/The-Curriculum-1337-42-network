@@ -5,5 +5,6 @@
 2011-01-09 => 1 = 0.32
 Error: not a positive number.
 Error: bad input => 2001-42-42
-2012-01-11 => 1 = 7.20
+2012-01-11 => 1 = 7.10
+2020-12-18 => 20 = 463015.78
 Error: too large a number.

@@ -21,11 +21,17 @@ BitcoinExchange::~BitcoinExchange()
 {
 }
 
+float return_result_data_exchange(std::string s1, std::string s2)
+{
+    float amount = atof(s1.substr(s1.find("|") + 1, s1.length()).c_str());
+    float exchange_rate = atof(s2.substr(s2.find(",") + 1, s2.length()).c_str());
+    return amount * exchange_rate;
+}
 float closestNumbers(std::list<std::string> vec, int number, std::string save_from_input)
 {
     std::pair<int, std::string> closest_numbers;
     closest_numbers.first = number;
-    closest_numbers.second = "data.csv";
+    closest_numbers.second = "";
     std::list<std::string>::iterator start = vec.begin();
     std::list<std::string>::iterator last = vec.end();
     while (start != last)
@@ -35,7 +41,11 @@ float closestNumbers(std::list<std::string> vec, int number, std::string save_fr
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
         if (atoi(current.c_str()) == number)
+        {
             closest_numbers.first = atoi(current.c_str());
+            closest_numbers.second = save;
+            return return_result_data_exchange(trim(save_from_input), trim(closest_numbers.second));
+        }
         if (atoi(current.c_str()) < number &&
             (atoi(current.c_str()) > closest_numbers.first || closest_numbers.first == number))
         {
@@ -44,13 +54,7 @@ float closestNumbers(std::list<std::string> vec, int number, std::string save_fr
         }
         start++;
     }
-    closest_numbers.second = trim(closest_numbers.second);
-    save_from_input = trim(save_from_input);
-    float exchange_rate = atof(closest_numbers.second.substr(closest_numbers.second.find(",") + 1, closest_numbers.second.length()).c_str());
-    float amount = atof(save_from_input.substr(save_from_input.find("|") + 1, save_from_input.length()).c_str());
-    // std::cout << exchange_rate << " | " << amount << std::endl;
-    float result = exchange_rate * amount;
-    return result;
+    return return_result_data_exchange(trim(save_from_input), trim(closest_numbers.second));
 }
 
 void BitcoinExchange::resetFlags(BitcoinExchange *scalar)
@@ -232,10 +236,10 @@ float BitcoinExchange::proccess_correct_data(std::string line)
         std::string current = *start;
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
-        if (target_to_search == atoi(current.c_str()))
-            return target_to_search;
-        else
+        if (target_to_search != atoi(current.c_str()))
             return closestNumbers(this->data_input_csv, target_to_search, send);
+        // return target_to_search;
+        // else
         start++;
     }
     return target_to_search;
