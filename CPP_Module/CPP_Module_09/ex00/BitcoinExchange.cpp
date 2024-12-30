@@ -28,7 +28,6 @@ int closestNumbers(std::list<std::string> vec, int number)
     closest_numbers.second = number;
     std::list<std::string>::iterator start = vec.begin();
     std::list<std::string>::iterator last = vec.end();
-    // // Find closest below.
     while (start != last)
     {
         std::string current = *start;
@@ -43,8 +42,6 @@ int closestNumbers(std::list<std::string> vec, int number)
         }
         start++;
     }
-    // // Find closest above.
-
     start = vec.begin();
     last = vec.end();
 
@@ -64,7 +61,17 @@ int closestNumbers(std::list<std::string> vec, int number)
     return result;
 }
 
-bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar)
+void BitcoinExchange::resetFlags(BitcoinExchange *scalar)
+{
+    scalar->was_int = 0;
+    scalar->was_float = 0;
+    scalar->from_large_number = 0;
+    scalar->was_negative_number = 0;
+    scalar->wrong_format = 0;
+    scalar->scan_date = 0;
+}
+
+bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int flag)
 {
     double number = 0;
     if (((str.at(0) == '-' || str.at(0) == '+') && isdigit(str.at(1))) || isdigit(str.at(0)))
@@ -79,28 +86,18 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar)
                 if (str.at(i) == '.')
                 {
                     if (!(isdigit(str.at(i - 1)) && (str.at(i + 1) == 'f' || isdigit(str.at(i + 1)))))
-                    {
                         return false;
-                    }
                     scalar->was_float = 1;
                 }
 
                 if (str.at(i) == 'f' && str[i + 1] != '\0')
                 {
                     if ((isdigit(str.at(i - 1)) && str.at(i) == 'f' && str[i + 1] == '\0') || (str.at(i - 1) == '.' && str.at(i) == 'f' && str[i + 1] == '\0'))
-                    {
-                        scalar->was_float = 1;
-                        return true;
-                    }
-
-                    scalar->was_float = 0;
-                    return false;
+                        return scalar->was_float = 1, true;
+                    return scalar->was_float = 0, false;
                 }
                 else if (str.at(i) != '.' && (str.at(i) != 'f' && !isdigit(str.at(i))))
-                {
-                    scalar->was_float = 0;
-                    return false;
-                }
+                    return scalar->was_float = 0, false;
             }
             catch (const std::exception &e)
             {
@@ -110,10 +107,7 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar)
             {
                 number = 10 * number + str.at(i) - '0';
                 if (number > INT_MAX || number < INT_MIN)
-                {
-                    this->from_large_number = 1;
-                    return false;
-                }
+                    return this->from_large_number = 1, false;
             }
             else
                 number = 0;
@@ -123,10 +117,12 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar)
         return false;
 
     scalar->was_int = 1;
+    if (scalar->was_float == 1 && flag == 0)
+        return scalar->was_float = 0, scalar->was_int = 0, scalar->wrong_format = 1, false;
     if (scalar->was_float == 1)
         scalar->was_int = 0;
     if (atoi(str.c_str()) < 0)
-        was_negative_number = 1;
+        return was_negative_number = 1, false;
     return true;
 }
 
@@ -147,38 +143,30 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
         {
             if (split_data_file[i] == '-')
             {
-                if (scanString(str.substr(j, i - j), scalar) == true)
+                if (scanString(str.substr(j, i - j), scalar, 0) == true)
                 {
                     // std::cout << "[" << str.substr(j, i - j) << "]" << "flag : " << scalar->was_float <<  std::endl;
                     data.push_back(atoi(str.substr(j, i - j).c_str()));
                     was_float = 0;
                 }
                 else
-                {
-                    this->wrong_format = 1;
-                    return false;
-                }
+                    return this->wrong_format = 1, false;
                 j = i + 1;
             }
         }
-        if (scanString(str.substr(j, strlen(split_data_file) - 1), scalar) == true)
+        if (scanString(str.substr(j, strlen(split_data_file) - 1), scalar, 0) == true)
             data.push_back(atoi(str.substr(j, strlen(split_data_file) - 1).c_str()));
         else
-        {
-            this->wrong_format = 1;
-            return false;
-        }
+            return this->wrong_format = 1, false;
         if (scalar->was_float == 1)
-        {
-            scalar->wrong_format = 1;
-            return false;
-        }
+            return scalar->wrong_format = 1, false;
+        resetFlags(scalar);
     }
 
     else if (target == 1 && flag == 1)
     {
         str = strdup(split_data_file);
-        if (scanString(str.substr(str.find(",") + 1, str.length()), scalar) == true)
+        if (scanString(str.substr(str.find(",") + 1, str.length()), scalar, 1) == true)
         {
             if (scalar->was_int == 1 && was_float == 0)
                 data.push_back(atoi(str.substr(str.find(",") + 1, str.length()).c_str()));
@@ -252,24 +240,17 @@ int BitcoinExchange::proccess_correct_data(std::string line)
         std::string current = *start;
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
-        if (target_to_search == atoi(current.c_str()))
+        if (target_to_search == atoi(current.c_str())){
+            std:
             return target_to_search;
-        else
-        {
+        }
+        else{
+
             return closestNumbers(this->data_input_csv, target_to_search);
         }
         start++;
     }
     return target_to_search;
-}
-void BitcoinExchange::resetFlags(BitcoinExchange *scalar)
-{
-    scalar->was_int = 0;
-    scalar->was_float = 0;
-    scalar->from_large_number = 0;
-    scalar->was_negative_number = 0;
-    scalar->wrong_format = 0;
-    scalar->scan_date = 0;
 }
 
 std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, BitcoinExchange *scalar)
@@ -292,20 +273,14 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
     while (std::getline(data_base, line))
     {
         if (line.compare("date,exchange_rate") != 0)
-        {
-            line = trim(line);
-            if (AddContenetFileIfValid(line, scalar, ",") == true)
-                this->data_input_csv.push_back(line);
-        }
+            this->data_input_csv.push_back(trim(line));
     }
-    resetFlags(scalar);
     line.clear();
     while (std::getline(file, line))
     {
         line = trim(line);
         if (line.compare("date | value") != 0)
         {
-
             if (AddContenetFileIfValid(line, scalar, "|") == true && scalar->was_negative_number != 1 && scalar->from_large_number != 1 && scalar->wrong_format != 1)
             {
                 std::cout << "proccess_correct_data : " << proccess_correct_data(line) << std::endl;
@@ -314,13 +289,20 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
             }
             else
             {
-                if (scalar->from_large_number == 1)
+                if (scalar->from_large_number == 1){
                     outputFile << "Error: too large a number.\n";
-                if (scalar->was_negative_number == 1)
+                    resetFlags(scalar);
+                }
+                
+                if (scalar->was_negative_number == 1){
                     outputFile << "Error: not a positive number.\n";
-                if (scalar->wrong_format == 1)
+                    resetFlags(scalar);
+                }
+                if (scalar->wrong_format == 1){
                     outputFile << "Error: bad input => " + line + "\n";
-                resetFlags(scalar);
+                    resetFlags(scalar);
+                }
+                
             }
         }
     }
