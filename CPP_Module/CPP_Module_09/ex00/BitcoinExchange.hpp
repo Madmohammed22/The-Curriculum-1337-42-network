@@ -41,8 +41,9 @@ public:
     void DisplayDataCSV(std::list<std::string> data_csv);
     bool scanString(std::string str, BitcoinExchange *scalar, int flag);
     bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag);
-    int proccess_correct_data(std::string line);
-    void resetFlags(BitcoinExchange *scalar); 
+    float proccess_correct_data(std::string line);
+    void resetFlags(BitcoinExchange *scalar);
+    std::string to_string(float nunber); 
 };
 
 inline std::string trim(std::string &str)

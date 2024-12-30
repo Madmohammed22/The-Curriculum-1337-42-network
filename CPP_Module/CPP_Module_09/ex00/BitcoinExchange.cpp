@@ -21,11 +21,11 @@ BitcoinExchange::~BitcoinExchange()
 {
 }
 
-int closestNumbers(std::list<std::string> vec, int number)
+float closestNumbers(std::list<std::string> vec, int number, std::string save_from_input)
 {
     std::pair<int, std::string> closest_numbers;
     closest_numbers.first = number;
-    closest_numbers.second = "number";
+    closest_numbers.second = "data.csv";
     std::list<std::string>::iterator start = vec.begin();
     std::list<std::string>::iterator last = vec.end();
     while (start != last)
@@ -40,12 +40,16 @@ int closestNumbers(std::list<std::string> vec, int number)
             (atoi(current.c_str()) > closest_numbers.first || closest_numbers.first == number))
         {
             closest_numbers.first = atoi(current.c_str());
-            closest_numbers.second = save; 
+            closest_numbers.second = save;
         }
         start++;
     }
-    std::cout << closest_numbers.second << std::endl;
-    int result = closest_numbers.first;
+    closest_numbers.second = trim(closest_numbers.second);
+    save_from_input = trim(save_from_input);
+    float exchange_rate = atof(closest_numbers.second.substr(closest_numbers.second.find(",") + 1, closest_numbers.second.length()).c_str());
+    float amount = atof(save_from_input.substr(save_from_input.find("|") + 1, save_from_input.length()).c_str());
+    // std::cout << exchange_rate << " | " << amount << std::endl;
+    float result = exchange_rate * amount;
     return result;
 }
 
@@ -213,9 +217,9 @@ bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExcha
     return keep_truck;
 }
 
-int BitcoinExchange::proccess_correct_data(std::string line)
+float BitcoinExchange::proccess_correct_data(std::string line)
 {
-
+    std::string send = line;
     line = line.substr(0, line.find(" "));
     line.erase(remove(line.begin(), line.end(), '-'), line.end());
     int target_to_search = atoi(line.c_str());
@@ -228,11 +232,20 @@ int BitcoinExchange::proccess_correct_data(std::string line)
         std::string current = *start;
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
-        if (target_to_search != atoi(current.c_str()))
-            return closestNumbers(this->data_input_csv, target_to_search);
+        if (target_to_search == atoi(current.c_str()))
+            return target_to_search;
+        else
+            return closestNumbers(this->data_input_csv, target_to_search, send);
         start++;
     }
     return target_to_search;
+}
+std::string BitcoinExchange::to_string(float number)
+{
+    std::ostringstream ss;
+    ss << number;
+    std::string s(ss.str());
+    return s;
 }
 
 std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, BitcoinExchange *scalar)
@@ -265,26 +278,28 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
         {
             if (AddContenetFileIfValid(line, scalar, "|") == true && scalar->was_negative_number != 1 && scalar->from_large_number != 1 && scalar->wrong_format != 1)
             {
-                std::cout << "proccess_correct_data : " << proccess_correct_data(line) << std::endl;
-                outputFile << line.substr(0, line.find("|") - 1) + " =>" + line.substr(line.find("|") + 1, line.length()) + " = " + "\n";
+                std::string float_strin = to_string(proccess_correct_data(line));
+                outputFile << line.substr(0, line.find("|") - 1) + " =>" + line.substr(line.find("|") + 1, line.length()) + " = " + to_string(proccess_correct_data(line)) + "\n";
                 resetFlags(scalar);
             }
             else
             {
-                if (scalar->from_large_number == 1){
+                if (scalar->from_large_number == 1)
+                {
                     outputFile << "Error: too large a number.\n";
                     resetFlags(scalar);
                 }
-                
-                if (scalar->was_negative_number == 1){
+
+                if (scalar->was_negative_number == 1)
+                {
                     outputFile << "Error: not a positive number.\n";
                     resetFlags(scalar);
                 }
-                if (scalar->wrong_format == 1){
+                if (scalar->wrong_format == 1)
+                {
                     outputFile << "Error: bad input => " + line + "\n";
                     resetFlags(scalar);
                 }
-                
             }
         }
     }
@@ -308,7 +323,6 @@ void BitcoinExchange::DisplayDataCSV(std::list<std::string> data_csv_txt)
 
     std::list<std::string>::iterator first = data_csv_txt.begin();
     std::list<std::string>::iterator end = data_csv_txt.end();
-    std::cout << "------------------" << std::endl;
     while (first != end)
     {
         std::cout << *first << std::endl;
