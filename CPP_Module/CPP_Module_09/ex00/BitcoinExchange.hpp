@@ -37,11 +37,19 @@ public:
 
 public:
     std::list<std::string> ReadFileCSV(std::string file_csv, BitcoinExchange *scalar);
-    bool AddContenetFile_IfValid(std::string file_data, BitcoinExchange *scalar, std::string seprator);
+    bool AddContenetFileIfValid(std::string file_data, BitcoinExchange *scalar, std::string seprator);
     void DisplayDataCSV(std::list<std::string> data_csv);
     bool scanString(std::string str, BitcoinExchange *scalar);
-    bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar);
+    bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag);
     int proccess_correct_data(std::string line);
+    void resetFlags(BitcoinExchange *scalar); 
 };
+
+inline std::string trim(std::string &str)
+{
+    str.erase(str.find_last_not_of(' ') + 1);
+    str.erase(0, str.find_first_not_of(' '));
+    return str;
+}
 
 #endif
