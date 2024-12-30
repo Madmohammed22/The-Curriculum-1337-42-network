@@ -121,6 +121,15 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int f
         return was_negative_number = 1, false;
     return true;
 }
+std::string get_str_between_two_str(const std::string &s,
+                                    const std::string &start_delim,
+                                    const std::string &stop_delim)
+{
+    unsigned first_delim_pos = s.find(start_delim);
+    unsigned end_pos_of_first_delim = first_delim_pos + start_delim.length();
+    unsigned last_delim_pos = (s.length() - 1) - s.rfind(stop_delim);
+    return s.substr(end_pos_of_first_delim, last_delim_pos);
+}
 
 bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag)
 {
@@ -141,7 +150,6 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
             {
                 if (scanString(str.substr(j, i - j), scalar, 0) == true)
                 {
-                    // std::cout << "[" << str.substr(j, i - j) << "]" << "flag : " << scalar->was_float <<  std::endl;
                     data.push_back(atoi(str.substr(j, i - j).c_str()));
                     was_float = 0;
                 }
@@ -150,6 +158,8 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
                 j = i + 1;
             }
         }
+        if (atoi(get_str_between_two_str(str, "-", "-").c_str()) > 31)
+            return this->wrong_format = 1, false;
         if (scanString(str.substr(j, strlen(split_data_file) - 1), scalar, 0) == true)
             data.push_back(atoi(str.substr(j, strlen(split_data_file) - 1).c_str()));
         else
