@@ -243,7 +243,8 @@ float BitcoinExchange::proccess_correct_data(std::string line)
 std::string BitcoinExchange::to_string(float number)
 {
     std::ostringstream ss;
-    ss << number;
+    ss.precision(2);
+    ss << std::fixed << number;
     std::string s(ss.str());
     return s;
 }
