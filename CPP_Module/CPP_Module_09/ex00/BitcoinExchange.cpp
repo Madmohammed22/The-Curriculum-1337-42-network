@@ -232,14 +232,11 @@ float BitcoinExchange::proccess_correct_data(std::string line)
     std::list<std::string>::iterator last = this->data_input_csv.end();
     while (start != last)
     {
-        std::string save = *start;
         std::string current = *start;
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
         if (target_to_search != atoi(current.c_str()))
             return closestNumbers(this->data_input_csv, target_to_search, send);
-        // return target_to_search;
-        // else
         start++;
     }
     return target_to_search;
