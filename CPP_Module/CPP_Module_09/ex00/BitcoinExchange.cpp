@@ -27,6 +27,7 @@ float return_result_data_exchange(std::string s1, std::string s2)
     float exchange_rate = atof(s2.substr(s2.find(",") + 1, s2.length()).c_str());
     return amount * exchange_rate;
 }
+
 float closestNumbers(std::list<std::string> vec, int number, std::string save_from_input)
 {
     std::pair<int, std::string> closest_numbers;
