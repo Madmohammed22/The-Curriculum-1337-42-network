@@ -67,8 +67,18 @@ void BitcoinExchange::resetFlags(BitcoinExchange *scalar)
     scalar->scan_date = 0;
 }
 
+int count_underscores(std::string s) {
+  int count = 0;
+
+  for (size_t i = 0; i < s.size(); i++)
+    if (s[i] == '-') count++;
+
+  return count;
+}
+
 bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int flag)
 {
+
     double number = 0;
     if (((str.at(0) == '-' || str.at(0) == '+') && isdigit(str.at(1))) || isdigit(str.at(0)))
     {
@@ -127,13 +137,12 @@ std::string get_str_between_two_str(const std::string &s,
 {
     unsigned first_delim_pos = s.find(start_delim);
     unsigned end_pos_of_first_delim = first_delim_pos + start_delim.length();
-    unsigned last_delim_pos = (s.length() - 1) - s.rfind(stop_delim);
-    return s.substr(end_pos_of_first_delim, last_delim_pos);
+    unsigned last_delim_pos = s.rfind(stop_delim);
+    return s.substr(end_pos_of_first_delim, last_delim_pos - end_pos_of_first_delim);
 }
 
 bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag)
 {
-
     std::string save = split_data_file;
     save = trim(save);
     split_data_file = strdup(save.c_str());
@@ -144,6 +153,8 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
     if (target == 0 && flag == 0)
     {
         str = strdup(split_data_file);
+        if (count_underscores(str) != 2 || str.find("-") == 0)
+            return wrong_format = 1, false;
         for (size_t i = 0; i < strlen(split_data_file); i++)
         {
             if (split_data_file[i] == '-')
