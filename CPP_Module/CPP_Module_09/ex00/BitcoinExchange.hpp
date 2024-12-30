@@ -15,11 +15,17 @@
 #include <fstream>
 #include <string>
 
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+#include <sstream>
+#include <ctime>
+#include <exception>    
 
 class BitcoinExchange
 {
 
-private:
+public:
     int was_int;
     int was_float;
     int from_large_number;
@@ -29,6 +35,7 @@ private:
     int current_day;
     int current_month;
     int current_year;
+    std::string curret_time_as_string;
     std::list<std::string> data_input_csv;
     std::vector<int> contains_year_month_day;
     std::vector<int> contains_value;
@@ -47,6 +54,7 @@ public:
     float proccess_correct_data(std::string line);
     void resetFlags(BitcoinExchange *scalar);
     std::string to_string(float nunber); 
+    bool check_accurency(std::string str, BitcoinExchange *scalar);
 };
 
 inline std::string trim(std::string &str)

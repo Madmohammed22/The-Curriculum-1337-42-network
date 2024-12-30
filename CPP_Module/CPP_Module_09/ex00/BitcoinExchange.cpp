@@ -15,8 +15,13 @@ BitcoinExchange::BitcoinExchange() : was_int(0), was_float(0), from_large_number
     else
     {
         this->current_year = result.tm_year + 1900;
-        this->current_month = result.tm_mon;
+        this->current_month = result.tm_mon + 1;
         this->current_day = result.tm_mday;
+        std::ostringstream ss;
+        ss << this->current_year << "-" << this->current_month <<  "-" << this->current_day;
+        std::string s(ss.str());
+        this->curret_time_as_string = s;
+
     }
 }
 
@@ -46,6 +51,7 @@ float return_result_data_exchange(std::string s1, std::string s2)
     float exchange_rate = atof(s2.substr(s2.find(",") + 1, s2.length()).c_str());
     return amount * exchange_rate;
 }
+
 
 float closestNumbers(std::list<std::string> vec, int number, std::string save_from_input)
 {
@@ -100,7 +106,6 @@ int count_underscores(std::string s)
 
 bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int flag)
 {
-
     double number = 0;
     if (((str.at(0) == '-' || str.at(0) == '+') && isdigit(str.at(1))) || isdigit(str.at(0)))
     {
@@ -163,8 +168,52 @@ std::string get_str_between_two_str(const std::string &s,
     return s.substr(end_pos_of_first_delim, last_delim_pos - end_pos_of_first_delim);
 }
 
+bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
+{
+    struct tm tm;
+    time_t t1, t2;
+    
+    // Clear the tm structure first
+    memset(&tm, 0, sizeof(struct tm));
+
+    // Parse the first date string
+    if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL) {
+        std::cerr << "Error parsing date: " << str << std::endl;
+        return false;
+    }
+    t1 = mktime(&tm);
+    
+    // Parse the second date string from the scalar object
+    memset(&tm, 0, sizeof(struct tm)); // Reset tm structure for second date
+    if (strptime(scalar->curret_time_as_string.c_str(), "%Y-%m-%d", &tm) == NULL) {
+        std::cerr << "Error parsing date: " << this->curret_time_as_string << std::endl;
+        return false;
+    }
+    t2 = mktime(&tm);
+
+    // Check if mktime returned invalid time (i.e., -1)
+    if (t1 == -1 || t2 == -1) {
+        std::cerr << "Error in mktime conversion" << std::endl;
+        return false;
+    }
+
+    if (str == scalar->curret_time_as_string){
+
+        std::cout << "[" << str << "]" << " " << "[" << scalar->curret_time_as_string << "]" << std::endl;
+        return true;
+    }
+    double diff = difftime(t1, t2);
+
+    // std::cout << str << " | " << this.curret_time_as_string << " | " << diff << std::endl;
+    if (diff < 0)
+        return false;
+    return true;  // Return true if the dates are different
+}
+
 bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag)
 {
+    if (!split_data_file)
+        return wrong_format = 1, false;
     std::string save = split_data_file;
     save = trim(save);
     split_data_file = strdup(save.c_str());
@@ -175,6 +224,8 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
     if (target == 0 && flag == 0)
     {
         str = strdup(split_data_file);
+        if (check_accurency(str, scalar) > 0)
+            return this->wrong_format = 1, false;
         if (count_underscores(str) != 2 || str.find("-") == 0)
             return wrong_format = 1, false;
         for (size_t i = 0; i < strlen(split_data_file); i++)
@@ -205,6 +256,8 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
     else if (target == 1 && flag == 1)
     {
         str = strdup(split_data_file);
+        // if (check_accurency(str) > 0)
+        //     return this->wrong_format = 1, false;
         if (scanString(str.substr(str.find(",") + 1, str.length()), scalar, 1) == true)
         {
             if (scalar->was_int == 1 && was_float == 0)
@@ -281,7 +334,9 @@ float BitcoinExchange::proccess_correct_data(std::string line)
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
         if (target_to_search != atoi(current.c_str()))
+        {
             return closestNumbers(this->data_input_csv, target_to_search, send);
+        }
         start++;
     }
     return target_to_search;
