@@ -23,13 +23,14 @@ BitcoinExchange::~BitcoinExchange()
 
 int closestNumbers(std::list<std::string> vec, int number)
 {
-    std::pair<int, int> closest_numbers;
+    std::pair<int, std::string> closest_numbers;
     closest_numbers.first = number;
-    closest_numbers.second = number;
+    closest_numbers.second = "number";
     std::list<std::string>::iterator start = vec.begin();
     std::list<std::string>::iterator last = vec.end();
     while (start != last)
     {
+        std::string save = *start;
         std::string current = *start;
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
@@ -39,24 +40,11 @@ int closestNumbers(std::list<std::string> vec, int number)
             (atoi(current.c_str()) > closest_numbers.first || closest_numbers.first == number))
         {
             closest_numbers.first = atoi(current.c_str());
+            closest_numbers.second = save; 
         }
         start++;
     }
-    start = vec.begin();
-    last = vec.end();
-
-    while (start != last)
-    {
-        std::string current = *start;
-        current = current.substr(0, current.find(","));
-        current.erase(remove(current.begin(), current.end(), '-'), current.end());
-        if (atoi(current.c_str()) > number &&
-            (atoi(current.c_str()) < closest_numbers.second || closest_numbers.second == number))
-        {
-            closest_numbers.second = atoi(current.c_str());
-        }
-        start++;
-    }
+    std::cout << closest_numbers.second << std::endl;
     int result = closest_numbers.first;
     return result;
 }
@@ -240,14 +228,8 @@ int BitcoinExchange::proccess_correct_data(std::string line)
         std::string current = *start;
         current = current.substr(0, current.find(","));
         current.erase(remove(current.begin(), current.end(), '-'), current.end());
-        if (target_to_search == atoi(current.c_str())){
-            std:
-            return target_to_search;
-        }
-        else{
-
+        if (target_to_search != atoi(current.c_str()))
             return closestNumbers(this->data_input_csv, target_to_search);
-        }
         start++;
     }
     return target_to_search;
