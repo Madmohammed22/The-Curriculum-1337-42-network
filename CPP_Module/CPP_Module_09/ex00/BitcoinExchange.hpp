@@ -51,7 +51,7 @@ public:
     bool AddContenetFileIfValid(std::string file_data, BitcoinExchange *scalar, std::string seprator);
     void DisplayDataCSV(std::list<std::string> data_csv);
     bool scanString(std::string str, BitcoinExchange *scalar, int flag);
-    bool KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag);
+    bool KeepTruckOfString(std::string split_data_file, int target, BitcoinExchange *scalar, int flag);
     float proccess_correct_data(std::string line);
     void resetFlags(BitcoinExchange *scalar);
     std::string to_string(float nunber); 

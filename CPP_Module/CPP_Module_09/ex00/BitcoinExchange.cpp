@@ -216,25 +216,25 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     return false;
 }
 
-bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag)
+bool BitcoinExchange::KeepTruckOfString(std::string split_data_file, int target, BitcoinExchange *scalar, int flag)
 {
-    if (!split_data_file)
+    if (split_data_file.empty())
         return wrong_format = 1, false;
     std::string save = split_data_file;
     save = trim(save);
-    split_data_file = strdup(save.c_str());
+    split_data_file = save;
     std::vector<int> data;
     std::string str;
     int j = 0;
 
     if (target == 0 && flag == 0)
     {
-        str = strdup(split_data_file);
+        str = split_data_file;
         if (check_accurency(str, scalar) == false)
             return this->wrong_format = 1, false;
         if (count_underscores(str) != 2 || str.find("-") == 0)
             return wrong_format = 1, false;
-        for (size_t i = 0; i < strlen(split_data_file); i++)
+        for (size_t i = 0; i < split_data_file.length(); i++)
         {
             if (split_data_file[i] == '-')
             {
@@ -250,8 +250,8 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
         }
         if (atoi(get_str_between_two_str(str, "-", "-").c_str()) > 31)
             return this->wrong_format = 1, false;
-        if (scanString(str.substr(j, strlen(split_data_file) - 1), scalar, 0) == true)
-            data.push_back(atoi(str.substr(j, strlen(split_data_file) - 1).c_str()));
+        if (scanString(str.substr(j, split_data_file.length() - 1), scalar, 0) == true)
+            data.push_back(atoi(str.substr(j, split_data_file.length() - 1).c_str()));
         else
             return this->wrong_format = 1, false;
         if (scalar->was_float == 1)
@@ -261,7 +261,7 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
 
     else if (target == 1 && flag == 1)
     {
-        str = strdup(split_data_file);
+        str = split_data_file;
         if (scanString(str.substr(str.find(",") + 1, str.length()), scalar, 1) == true)
         {
             if (scalar->was_int == 1 && was_float == 0)
@@ -285,39 +285,34 @@ bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExcha
     std::string dest = trim(data_file);
     if (seprator.compare("|") == 0)
     {
-        if (data_file.find("|") == std::string::npos){
-            // delete [] dest;
+        if (data_file.find("|") == std::string::npos)
             return scalar->wrong_format = 1, false;
-        }
-        char *split_data_file = std::strtok((char *)dest.c_str(), "|");
-        if (KeepTruckOfString(split_data_file, 0, scalar, 0) == true)
+        std::string test1 = dest.substr(0, dest.find("|"));
+        if (KeepTruckOfString(test1, 0, scalar, 0) == true)
             keep_truck = true;
         resetFlags(scalar);
-        split_data_file = std::strtok(NULL, "|");
-        if (keep_truck == true && KeepTruckOfString(split_data_file, 1, scalar, 1) == true)
+        test1.clear();
+        test1 = dest.substr(dest.find("|") + 1, dest.length());
+        if (keep_truck == true && KeepTruckOfString(test1, 1, scalar, 1) == true)
             keep_truck = true;
-        else{
-            // delete [] split_data_file;
+        else
             return scalar->wrong_format = 1, false;
-        }
         resetFlags(scalar);
     }
 
     if (seprator.compare(",") == 0)
     {
-        if (data_file.find(",") == std::string::npos){
-            // delete [] dest;
+        if (data_file.find(",") == std::string::npos)
             return false;
-        }
-        char *split_data_file = std::strtok((char *)dest.c_str(), ",");
+        std::string split_data_file = dest.substr(0, dest.find(","));
         if (KeepTruckOfString(split_data_file, 0, scalar, 0) == true)
             keep_truck = true;
-        split_data_file = std::strtok(NULL, ",");
+        split_data_file.clear();
+        split_data_file = dest.substr(dest.find(",") + 1, dest.length());
         if (KeepTruckOfString(split_data_file, 1, scalar, 1) == true && keep_truck == true)
             keep_truck = true;
         else
             keep_truck = false;
-        // delete [] split_data_file;
     }
     return keep_truck;
 }
