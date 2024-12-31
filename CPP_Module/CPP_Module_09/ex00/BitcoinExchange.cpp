@@ -196,10 +196,13 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     time_t t1, t2;
     if (str == scalar->time_when_bitcoin_was_released)
     {
-        if (check_accurency_result(str, scalar->time_when_bitcoin_was_released) == true)
+        if (check_accurency_result(str, scalar->time_when_bitcoin_was_released) == true){
             return true;
-        else
+        }
+        else{
+            std::cout << "-> " <<  str << std::endl;
             return false;
+        }
     }
     memset(&tm, 0, sizeof(struct tm));
     if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL)
@@ -211,8 +214,10 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     t2 = mktime(&tm);
     if (t1 == -1 || t2 == -1)
         return false;
-    if (difftime(t1, t2) <= 0)
+    if (difftime(t1, t2) <= 0){
+        std::cout << "-> " <<  str << std::endl;
         return true;
+    }
     return false;
 }
 
