@@ -281,30 +281,35 @@ bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExcha
 {
     if (data_file.empty())
         return false;
-    char *dest = NULL;
     bool keep_truck = false;
-    dest = strdup(trim(data_file).c_str());
+    std::string dest = trim(data_file);
     if (seprator.compare("|") == 0)
     {
-        if (data_file.find("|") == std::string::npos)
+        if (data_file.find("|") == std::string::npos){
+            // delete [] dest;
             return scalar->wrong_format = 1, false;
-        char *split_data_file = std::strtok(dest, "|");
+        }
+        char *split_data_file = std::strtok((char *)dest.c_str(), "|");
         if (KeepTruckOfString(split_data_file, 0, scalar, 0) == true)
             keep_truck = true;
         resetFlags(scalar);
         split_data_file = std::strtok(NULL, "|");
         if (keep_truck == true && KeepTruckOfString(split_data_file, 1, scalar, 1) == true)
             keep_truck = true;
-        else
+        else{
+            // delete [] split_data_file;
             return scalar->wrong_format = 1, false;
+        }
         resetFlags(scalar);
     }
 
     if (seprator.compare(",") == 0)
     {
-        if (data_file.find(",") == std::string::npos)
+        if (data_file.find(",") == std::string::npos){
+            // delete [] dest;
             return false;
-        char *split_data_file = std::strtok(dest, ",");
+        }
+        char *split_data_file = std::strtok((char *)dest.c_str(), ",");
         if (KeepTruckOfString(split_data_file, 0, scalar, 0) == true)
             keep_truck = true;
         split_data_file = std::strtok(NULL, ",");
@@ -312,8 +317,8 @@ bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExcha
             keep_truck = true;
         else
             keep_truck = false;
+        // delete [] split_data_file;
     }
-
     return keep_truck;
 }
 
