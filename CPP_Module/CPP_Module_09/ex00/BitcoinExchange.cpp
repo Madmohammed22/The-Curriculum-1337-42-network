@@ -156,15 +156,6 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int f
         return was_negative_number = 1, false;
     return true;
 }
-std::string get_str_between_two_str(const std::string &s,
-                                    const std::string &start_delim,
-                                    const std::string &stop_delim)
-{
-    unsigned first_delim_pos = s.find(start_delim);
-    unsigned end_pos_of_first_delim = first_delim_pos + start_delim.length();
-    unsigned last_delim_pos = s.rfind(stop_delim);
-    return s.substr(end_pos_of_first_delim, last_delim_pos - end_pos_of_first_delim);
-}
 
 bool check_accurency_result(std::string time1, std::string time2)
 {
@@ -200,9 +191,12 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
             return true;
         }
         else{
-            std::cout << "-> " <<  str << std::endl;
             return false;
         }
+    }
+    else{
+        if (!check_accurency_result(str, scalar->time_when_bitcoin_was_released) == true)
+            return false;
     }
     memset(&tm, 0, sizeof(struct tm));
     if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL)
@@ -214,10 +208,8 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     t2 = mktime(&tm);
     if (t1 == -1 || t2 == -1)
         return false;
-    if (difftime(t1, t2) <= 0){
-        std::cout << "-> " <<  str << std::endl;
+    if (difftime(t1, t2) <= 0)
         return true;
-    }
     return false;
 }
 
@@ -230,38 +222,12 @@ bool BitcoinExchange::KeepTruckOfString(std::string split_data_file, int target,
     split_data_file = save;
     std::vector<int> data;
     std::string str;
-    int j = 0;
 
     if (target == 0 && flag == 0)
     {
         str = split_data_file;
         if (check_accurency(str, scalar) == false)
             return this->wrong_format = 1, false;
-        if (count_underscores(str) != 2 || str.find("-") == 0)
-            return wrong_format = 1, false;
-        for (size_t i = 0; i < split_data_file.length(); i++)
-        {
-            if (split_data_file[i] == '-')
-            {
-                if (scanString(str.substr(j, i - j), scalar, 0) == true)
-                {
-                    data.push_back(atoi(str.substr(j, i - j).c_str()));
-                    was_float = 0;
-                }
-                else
-                    return this->wrong_format = 1, false;
-                j = i + 1;
-            }
-        }
-        if (atoi(get_str_between_two_str(str, "-", "-").c_str()) > 31)
-            return this->wrong_format = 1, false;
-        if (scanString(str.substr(j, split_data_file.length() - 1), scalar, 0) == true)
-            data.push_back(atoi(str.substr(j, split_data_file.length() - 1).c_str()));
-        else
-            return this->wrong_format = 1, false;
-        if (scalar->was_float == 1)
-            return scalar->wrong_format = 1, false;
-        resetFlags(scalar);
     }
 
     else if (target == 1 && flag == 1)
