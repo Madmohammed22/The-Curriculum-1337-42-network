@@ -99,7 +99,6 @@ int count_underscores(std::string s)
     for (size_t i = 0; i < s.size(); i++)
         if (s[i] == '-')
             count++;
-
     return count;
 }
 
@@ -207,18 +206,6 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
         return false;
     t1 = mktime(&tm);
     memset(&tm, 0, sizeof(struct tm));
-    if (strptime(scalar->time_when_bitcoin_was_released.c_str(), "%Y-%m-%d", &tm) == NULL)
-        return false;
-    t2 = mktime(&tm);
-    if (t1 == -1 || t2 == -1)
-        return false;
-    if (difftime(t1, t2) < 0)
-        return false;
-    memset(&tm, 0, sizeof(struct tm));
-    if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL)
-        return false;
-    t1 = mktime(&tm);
-    memset(&tm, 0, sizeof(struct tm));
     if (strptime(scalar->curret_time_as_string.c_str(), "%Y-%m-%d", &tm) == NULL)
         return false;
     t2 = mktime(&tm);
@@ -280,13 +267,10 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
             if (scalar->was_int == 1 && was_float == 0)
                 data.push_back(atoi(str.substr(str.find(",") + 1, str.length()).c_str()));
             else
-            {
                 data.push_back(atof(str.substr(str.find(",") + 1, str.length()).c_str()));
-            }
         }
         else
             return false;
-
         if (scalar->was_negative_number == 1)
             return false;
     }
@@ -312,10 +296,7 @@ bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExcha
         if (keep_truck == true && KeepTruckOfString(split_data_file, 1, scalar, 1) == true)
             keep_truck = true;
         else
-        {
-            scalar->wrong_format = 1;
-            return false;
-        }
+            return scalar->wrong_format = 1, false;
         resetFlags(scalar);
     }
 
@@ -374,7 +355,6 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
     std::string filename = "Result.txt";
     std::ofstream outputFile(filename.c_str());
     std::list<std::string> data_csv_txt;
-
     std::ifstream data_base("data.csv");
 
     if (!file.is_open() || !data_base.is_open() || !outputFile.good())
@@ -385,10 +365,8 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
     std::string line;
 
     while (std::getline(data_base, line))
-    {
         if (line.compare("date,exchange_rate") != 0)
             this->data_input_csv.push_back(trim(line));
-    }
     line.clear();
     while (std::getline(file, line))
     {
