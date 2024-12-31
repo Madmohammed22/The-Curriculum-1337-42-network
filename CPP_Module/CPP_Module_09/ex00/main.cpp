@@ -18,6 +18,7 @@ int main__(){
     strcpy(str, "hello world");
     // str = strdup("hello world");
     std::cout << str << std::endl;
+
     delete [] str;
     return 0;
 }

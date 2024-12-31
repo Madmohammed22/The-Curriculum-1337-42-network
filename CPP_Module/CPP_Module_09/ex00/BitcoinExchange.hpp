@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <ctime>
+#include <time.h>
 #include <exception>    
 
 class BitcoinExchange

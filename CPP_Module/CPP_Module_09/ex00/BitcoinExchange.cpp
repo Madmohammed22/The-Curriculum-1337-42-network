@@ -92,18 +92,14 @@ void BitcoinExchange::resetFlags(BitcoinExchange *scalar)
     scalar->scan_date = 0;
 }
 
-int count_underscores(std::string s)
-{
-    int count = 0;
-
-    for (size_t i = 0; i < s.size(); i++)
-        if (s[i] == '-')
-            count++;
-    return count;
-}
-
 bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int flag)
 {
+    if (flag == 0){
+        for (size_t i = 0; i < str.length(); i++){
+            if (!isdigit(str[i]))
+                return scalar->wrong_format = 1, false;;
+        }
+    }
     double number = 0;
     if (((str.at(0) == '-' || str.at(0) == '+') && isdigit(str.at(1))) || isdigit(str.at(0)))
     {
@@ -157,17 +153,26 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int f
     return true;
 }
 
+std::string formatDate(std::string date)
+{
+    std::string year = date.substr(0, date.find("-"));
+    std::string day = date.substr(date.rfind("-") + 1, date.length());
+    date.replace(0, year.length(), day);
+    date.replace(date.rfind("-") + 1, day.length(), year);
+    return date;
+}
 bool check_accurency_result(std::string time1, std::string time2)
 {
     struct tm tm;
     time_t t1, t2;
-
+    time1 = formatDate(time1);
+    time2 = formatDate(time2);
     memset(&tm, 0, sizeof(struct tm));
-    if (strptime(time1.c_str(), "%Y-%m-%d", &tm) == NULL)
+    if (strptime(time1.c_str(), "%d-%m-%Y", &tm) == NULL)
         return false;
     t1 = mktime(&tm);
     memset(&tm, 0, sizeof(struct tm));
-    if (strptime(time2.c_str(), "%Y-%m-%d", &tm) == NULL)
+    if (strptime(time2.c_str(), "%d-%m-%Y", &tm) == NULL)
         return false;
     t2 = mktime(&tm);
     if (t1 == -1 || t2 == -1)
@@ -187,23 +192,24 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     time_t t1, t2;
     if (str == scalar->time_when_bitcoin_was_released)
     {
-        if (check_accurency_result(str, scalar->time_when_bitcoin_was_released) == true){
+        if (check_accurency_result(str, scalar->time_when_bitcoin_was_released) == true)
             return true;
-        }
-        else{
+        else
             return false;
-        }
     }
-    else{
+    else
+    {
         if (!check_accurency_result(str, scalar->time_when_bitcoin_was_released) == true)
             return false;
     }
+    str = formatDate(str);
+    std::string curret_time_as_string = formatDate(scalar->curret_time_as_string);
     memset(&tm, 0, sizeof(struct tm));
-    if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL)
+    if (strptime(str.c_str(), "%d-%m-%Y", &tm) == NULL)
         return false;
     t1 = mktime(&tm);
     memset(&tm, 0, sizeof(struct tm));
-    if (strptime(scalar->curret_time_as_string.c_str(), "%Y-%m-%d", &tm) == NULL)
+    if (strptime(curret_time_as_string.c_str(), "%d-%m-%Y", &tm) == NULL)
         return false;
     t2 = mktime(&tm);
     if (t1 == -1 || t2 == -1)
@@ -213,34 +219,26 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     return false;
 }
 
-bool BitcoinExchange::KeepTruckOfString(std::string split_data_file, int target, BitcoinExchange *scalar, int flag)
+bool BitcoinExchange::KeepTruckOfString(std::string data, int target, BitcoinExchange *scalar, int flag)
 {
-    if (split_data_file.empty())
+    if (data.empty())
         return wrong_format = 1, false;
-    std::string save = split_data_file;
-    save = trim(save);
-    split_data_file = save;
-    std::vector<int> data;
-    std::string str;
+    data = trim(data);
 
     if (target == 0 && flag == 0)
     {
-        str = split_data_file;
-        if (check_accurency(str, scalar) == false)
+        std::string year = data.substr(0, data.find("-"));
+ 
+        if (scanString(year, scalar, 0) == false && scalar->wrong_format == 1)
+        {
+            return false;
+        }
+        if (check_accurency(data, scalar) == false)
             return this->wrong_format = 1, false;
     }
-
     else if (target == 1 && flag == 1)
     {
-        str = split_data_file;
-        if (scanString(str.substr(str.find(",") + 1, str.length()), scalar, 1) == true)
-        {
-            if (scalar->was_int == 1 && was_float == 0)
-                data.push_back(atoi(str.substr(str.find(",") + 1, str.length()).c_str()));
-            else
-                data.push_back(atof(str.substr(str.find(",") + 1, str.length()).c_str()));
-        }
-        else
+        if (!scanString(data.substr(data.find(",") + 1, data.length()), scalar, 1) == true)
             return false;
         if (scalar->was_negative_number == 1)
             return false;
@@ -248,23 +246,23 @@ bool BitcoinExchange::KeepTruckOfString(std::string split_data_file, int target,
     return true;
 }
 
-bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExchange *scalar, std::string seprator)
+bool BitcoinExchange::AddContenetFileIfValid(std::string data, BitcoinExchange *scalar, std::string seprator)
 {
-    if (data_file.empty())
+    if (data.empty())
         return false;
     bool keep_truck = false;
-    std::string dest = trim(data_file);
+    data = trim(data);
     if (seprator.compare("|") == 0)
     {
-        if (data_file.find("|") == std::string::npos)
+        if (data.find("|") == std::string::npos)
             return scalar->wrong_format = 1, false;
-        std::string test1 = dest.substr(0, dest.find("|"));
-        if (KeepTruckOfString(test1, 0, scalar, 0) == true)
+        std::string split_data_file = data.substr(0, data.find("|"));
+        if (KeepTruckOfString(split_data_file, 0, scalar, 0) == true)
             keep_truck = true;
         resetFlags(scalar);
-        test1.clear();
-        test1 = dest.substr(dest.find("|") + 1, dest.length());
-        if (keep_truck == true && KeepTruckOfString(test1, 1, scalar, 1) == true)
+        split_data_file.clear();
+        split_data_file = data.substr(data.find("|") + 1, data.length());
+        if (keep_truck == true && KeepTruckOfString(split_data_file, 1, scalar, 1) == true)
             keep_truck = true;
         else
             return scalar->wrong_format = 1, false;
@@ -273,13 +271,13 @@ bool BitcoinExchange::AddContenetFileIfValid(std::string data_file, BitcoinExcha
 
     if (seprator.compare(",") == 0)
     {
-        if (data_file.find(",") == std::string::npos)
+        if (data.find(",") == std::string::npos)
             return false;
-        std::string split_data_file = dest.substr(0, dest.find(","));
+        std::string split_data_file = data.substr(0, data.find(","));
         if (KeepTruckOfString(split_data_file, 0, scalar, 0) == true)
             keep_truck = true;
         split_data_file.clear();
-        split_data_file = dest.substr(dest.find(",") + 1, dest.length());
+        split_data_file = data.substr(data.find(",") + 1, data.length());
         if (KeepTruckOfString(split_data_file, 1, scalar, 1) == true && keep_truck == true)
             keep_truck = true;
         else
