@@ -36,6 +36,7 @@ public:
     int current_month;
     int current_year;
     std::string curret_time_as_string;
+    std::string time_when_bitcoin_was_released;
     std::list<std::string> data_input_csv;
     std::vector<int> contains_year_month_day;
     std::vector<int> contains_value;

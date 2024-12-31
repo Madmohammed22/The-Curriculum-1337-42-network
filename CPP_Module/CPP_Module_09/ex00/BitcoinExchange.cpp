@@ -18,11 +18,11 @@ BitcoinExchange::BitcoinExchange() : was_int(0), was_float(0), from_large_number
         this->current_month = result.tm_mon + 1;
         this->current_day = result.tm_mday;
         std::ostringstream ss;
-        ss << this->current_year << "-" << this->current_month <<  "-" << this->current_day;
+        ss << this->current_year << "-" << this->current_month << "-" << this->current_day;
         std::string s(ss.str());
         this->curret_time_as_string = s;
-
     }
+    this->time_when_bitcoin_was_released = "2009-01-03";
 }
 
 BitcoinExchange::BitcoinExchange(const BitcoinExchange &Init) : was_int(Init.was_int), was_float(Init.was_float), from_large_number(Init.from_large_number), wrong_format(Init.wrong_format), scan_date(Init.scan_date)
@@ -51,7 +51,6 @@ float return_result_data_exchange(std::string s1, std::string s2)
     float exchange_rate = atof(s2.substr(s2.find(",") + 1, s2.length()).c_str());
     return amount * exchange_rate;
 }
-
 
 float closestNumbers(std::list<std::string> vec, int number, std::string save_from_input)
 {
@@ -168,11 +167,53 @@ std::string get_str_between_two_str(const std::string &s,
     return s.substr(end_pos_of_first_delim, last_delim_pos - end_pos_of_first_delim);
 }
 
+bool check_accurency_result(std::string time1, std::string time2)
+{
+    struct tm tm;
+    time_t t1, t2;
+
+    memset(&tm, 0, sizeof(struct tm));
+    if (strptime(time1.c_str(), "%Y-%m-%d", &tm) == NULL)
+        return false;
+    t1 = mktime(&tm);
+    memset(&tm, 0, sizeof(struct tm));
+    if (strptime(time2.c_str(), "%Y-%m-%d", &tm) == NULL)
+        return false;
+    t2 = mktime(&tm);
+    if (t1 == -1 || t2 == -1)
+        return false;
+    if (time1 == time2)
+        return true;
+    if (difftime(t1, t2) < 0)
+        return false;
+    else
+        return true;
+    return false;
+}
+
 bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
 {
     struct tm tm;
     time_t t1, t2;
-    
+    if (str == scalar->time_when_bitcoin_was_released)
+    {
+        if (check_accurency_result(str, scalar->time_when_bitcoin_was_released) == true)
+            return true;
+        else
+            return false;
+    }
+    memset(&tm, 0, sizeof(struct tm));
+    if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL)
+        return false;
+    t1 = mktime(&tm);
+    memset(&tm, 0, sizeof(struct tm));
+    if (strptime(scalar->time_when_bitcoin_was_released.c_str(), "%Y-%m-%d", &tm) == NULL)
+        return false;
+    t2 = mktime(&tm);
+    if (t1 == -1 || t2 == -1)
+        return false;
+    if (difftime(t1, t2) < 0)
+        return false;
     memset(&tm, 0, sizeof(struct tm));
     if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL)
         return false;
@@ -184,8 +225,8 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     if (t1 == -1 || t2 == -1)
         return false;
     if (difftime(t1, t2) <= 0)
-        return false;
-    return true;
+        return true;
+    return false;
 }
 
 bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag)
@@ -202,7 +243,7 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
     if (target == 0 && flag == 0)
     {
         str = strdup(split_data_file);
-        if (check_accurency(str, scalar) > 0)
+        if (check_accurency(str, scalar) == false)
             return this->wrong_format = 1, false;
         if (count_underscores(str) != 2 || str.find("-") == 0)
             return wrong_format = 1, false;
@@ -234,8 +275,6 @@ bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, Bitco
     else if (target == 1 && flag == 1)
     {
         str = strdup(split_data_file);
-        // if (check_accurency(str) > 0)
-        //     return this->wrong_format = 1, false;
         if (scanString(str.substr(str.find(",") + 1, str.length()), scalar, 1) == true)
         {
             if (scalar->was_int == 1 && was_float == 0)
