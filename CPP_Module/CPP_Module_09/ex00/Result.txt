@@ -7,7 +7,7 @@ Error: not a positive number.
 Error: bad input => 2001-42-42
 2012-01-11 => 1 = 7.10
 Error: bad input => 2030-01-11 | 1
-Error: bad input => 2024-12-30 | 2
-Error: bad input => 2024-12-31 | 2
+2024-12-30 => 2 = 94231.86
+2024-12-31 => 2 = 94231.86
 2018-12-31 => 2 = 7540.72
 Error: too large a number.

@@ -173,41 +173,19 @@ bool BitcoinExchange::check_accurency(std::string str, BitcoinExchange *scalar)
     struct tm tm;
     time_t t1, t2;
     
-    // Clear the tm structure first
     memset(&tm, 0, sizeof(struct tm));
-
-    // Parse the first date string
-    if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL) {
-        std::cerr << "Error parsing date: " << str << std::endl;
+    if (strptime(str.c_str(), "%Y-%m-%d", &tm) == NULL)
         return false;
-    }
     t1 = mktime(&tm);
-    
-    // Parse the second date string from the scalar object
-    memset(&tm, 0, sizeof(struct tm)); // Reset tm structure for second date
-    if (strptime(scalar->curret_time_as_string.c_str(), "%Y-%m-%d", &tm) == NULL) {
-        std::cerr << "Error parsing date: " << this->curret_time_as_string << std::endl;
+    memset(&tm, 0, sizeof(struct tm));
+    if (strptime(scalar->curret_time_as_string.c_str(), "%Y-%m-%d", &tm) == NULL)
         return false;
-    }
     t2 = mktime(&tm);
-
-    // Check if mktime returned invalid time (i.e., -1)
-    if (t1 == -1 || t2 == -1) {
-        std::cerr << "Error in mktime conversion" << std::endl;
+    if (t1 == -1 || t2 == -1)
         return false;
-    }
-
-    if (str == scalar->curret_time_as_string){
-
-        std::cout << "[" << str << "]" << " " << "[" << scalar->curret_time_as_string << "]" << std::endl;
-        return true;
-    }
-    double diff = difftime(t1, t2);
-
-    // std::cout << str << " | " << this.curret_time_as_string << " | " << diff << std::endl;
-    if (diff < 0)
+    if (difftime(t1, t2) <= 0)
         return false;
-    return true;  // Return true if the dates are different
+    return true;
 }
 
 bool BitcoinExchange::KeepTruckOfString(char *split_data_file, int target, BitcoinExchange *scalar, int flag)
