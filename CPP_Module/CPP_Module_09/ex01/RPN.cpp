@@ -21,14 +21,15 @@ RPN::~RPN()
 
 int RPN::resultRPN(std::string expression)
 {
-    std::stack<int> mstack;
-    int first_operands;
-    int second_operands;
     if (expression.empty())
     {
         std::cout << "Error" << std::endl;
-        exit(1);
+        _Exit(1);
     }
+    MutantStack<int> mstack;
+    // std::stack<int> mstack;
+    int first_operands;
+    int second_operands;
     expression.erase(remove(expression.begin(), expression.end(), ' '), expression.end());
     for (size_t i = 0; i < expression.length(); i++)
     {
@@ -44,13 +45,12 @@ int RPN::resultRPN(std::string expression)
             switch (c)
             {
             case '+':
-                if (mstack.size() != 2)
-                {
-                    std::cout << "Error" << std::endl;
-                    exit(1);
-                }
                 second_operands = mstack.top();
                 mstack.pop();
+                if (mstack.empty()){
+                    std::cout << "Error" << std::endl;
+                    _Exit(1);
+                }
                 first_operands = mstack.top();
                 mstack.pop();
 
@@ -58,32 +58,25 @@ int RPN::resultRPN(std::string expression)
                 break;
 
             case '-':
-
                 second_operands = mstack.top();
                 mstack.pop();
-                try
-                {
-                    if (mstack.size() <= 0)
-                        throw std::runtime_error("Error");
-                    first_operands = mstack.top();
+                if (mstack.empty()){
+                    std::cout << "Error" << std::endl;
+                    _Exit(1);
                 }
-                catch (const std::exception &e)
-                {
-                    std::cout << e.what() << std::endl;
-                    exit(1);
-                }
+                first_operands = mstack.top();
                 mstack.pop();
+
                 mstack.push((first_operands - second_operands));
                 break;
 
             case '*':
-                if (mstack.size() != 2)
-                {
-                    std::cout << "Error" << std::endl;
-                    exit(1);
-                }
                 second_operands = mstack.top();
                 mstack.pop();
+                if (mstack.empty()){
+                    std::cout << "Error" << std::endl;
+                    _Exit(1);
+                }
                 first_operands = mstack.top();
                 mstack.pop();
 
@@ -91,13 +84,12 @@ int RPN::resultRPN(std::string expression)
                 break;
 
             case '/':
-                if (mstack.size() != 2)
-                {
-                    std::cout << "Error" << std::endl;
-                    exit(1);
-                }
                 second_operands = mstack.top();
                 mstack.pop();
+                if (mstack.empty()){
+                    std::cout << "Error" << std::endl;
+                    _Exit(1);
+                }
                 first_operands = mstack.top();
                 mstack.pop();
                 try
@@ -109,12 +101,12 @@ int RPN::resultRPN(std::string expression)
                 catch (const std::exception &e)
                 {
                     std::cerr << e.what() << '\n';
-                    exit(1);
+                    _Exit(1);
                 }
                 break;
             default:
                 std::cout << "Error" << std::endl;
-                exit(1);
+                _Exit(1);
             }
         }
     }
