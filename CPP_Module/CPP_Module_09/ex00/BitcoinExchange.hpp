@@ -23,6 +23,15 @@
 #include <time.h>
 #include <exception>    
 
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <complex>
+#include <iostream>
+#include <string>
+#include <string_view>
+#include <vector>
+
 class BitcoinExchange
 {
 
@@ -64,6 +73,10 @@ inline std::string trim(std::string &str)
     str.erase(str.find_last_not_of(' ') + 1);
     str.erase(0, str.find_first_not_of(' '));
     return str;
+}
+
+inline bool isnonnum(char c) {
+	return !((c >= '0' && c <= '9') || c == '.');
 }
 
 #endif

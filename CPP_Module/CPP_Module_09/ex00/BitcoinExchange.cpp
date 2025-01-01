@@ -95,9 +95,11 @@ void BitcoinExchange::resetFlags(BitcoinExchange *scalar)
 bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int flag)
 {
     if (flag == 0){
+        if (str.empty())
+            return scalar->wrong_format = 1, false;
         for (size_t i = 0; i < str.length(); i++){
             if (!isdigit(str[i]))
-                return scalar->wrong_format = 1, false;;
+                return scalar->wrong_format = 1, false;
         }
     }
     double number = 0;
@@ -155,6 +157,8 @@ bool BitcoinExchange::scanString(std::string str, BitcoinExchange *scalar, int f
 
 std::string formatDate(std::string date)
 {
+    if (date.empty())
+        return NULL;
     std::string year = date.substr(0, date.find("-"));
     std::string day = date.substr(date.rfind("-") + 1, date.length());
     date.replace(0, year.length(), day);
@@ -165,6 +169,8 @@ bool check_accurency_result(std::string time1, std::string time2)
 {
     struct tm tm;
     time_t t1, t2;
+    if (formatDate(time1).empty() || formatDate(time2).empty())
+        return false;
     time1 = formatDate(time1);
     time2 = formatDate(time2);
     memset(&tm, 0, sizeof(struct tm));
@@ -345,7 +351,9 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
             if (AddContenetFileIfValid(line, scalar, "|") == true && scalar->was_negative_number != 1 && scalar->from_large_number != 1 && scalar->wrong_format != 1)
             {
                 std::string float_strin = to_string(proccess_correct_data(line));
-                outputFile << line.substr(0, line.find("|") - 1) + " =>" + line.substr(line.find("|") + 1, line.length()) + " = " + to_string(proccess_correct_data(line)) + "\n";
+                std::string holder = line.substr(line.find("|") + 1, line.length());
+                holder.erase(std::remove_if(holder.begin(), holder.end(), isnonnum), holder.end());
+                outputFile << line.substr(0, line.find("|") - 1) + " => " + holder + " = " + to_string(proccess_correct_data(line)) + "\n";
                 resetFlags(scalar);
             }
             else
