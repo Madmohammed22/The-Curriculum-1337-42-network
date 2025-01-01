@@ -391,14 +391,3 @@ std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, Bitcoi
     data_base.close();
     return data_csv_txt;
 }
-
-void BitcoinExchange::DisplayDataCSV(std::list<std::string> data_csv_txt)
-{
-    std::list<std::string>::iterator first = data_csv_txt.begin();
-    std::list<std::string>::iterator end = data_csv_txt.end();
-    while (first != end)
-    {
-        std::cout << *first << std::endl;
-        first++;
-    }
-}
