@@ -45,6 +45,7 @@ public:
     void displayNumber(std::vector<int> vec);
     void swapPairs(std::pair<int, int> &ai_bi);
     std::vector<int> ft_PmergeMe(std::vector<int> vec);
+    std::vector<std::pair<int, int> > ft_PmergeMe_recussion(std::vector<int> vec);
 };
 
 
