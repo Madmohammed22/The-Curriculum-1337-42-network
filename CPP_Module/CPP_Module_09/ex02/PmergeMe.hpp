@@ -45,7 +45,8 @@ public:
     void displayNumber(std::vector<int> vec);
     void swapPairs(std::pair<int, int> &ai_bi);
     std::vector<int> ft_PmergeMe(std::vector<int> vec);
-    std::vector<std::pair<int, int> > ft_PmergeMe_recussion(std::vector<int> vec);
+    std::vector<std::pair<int, int> > ft_PmergeMe_recussion(const std::vector<int>& vec, int n);
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > ft_PmergeMe_recussion_lv2(std::vector<std::pair<int, int> > sub_comparisons, int n);
 };
 
 
