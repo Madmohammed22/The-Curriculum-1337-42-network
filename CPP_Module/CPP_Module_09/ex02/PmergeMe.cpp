@@ -79,6 +79,22 @@ PmergeMe::ft_PmergeMe_recussion_lv2(std::vector<std::pair<int, int> >sub_compari
     }
     return pair_of_pairs;
 }
+
+std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >, std::pair<std::pair<int, int>, std::pair<int, int> > > 
+PmergeMe::ft_PmergeMe_recussion_lv3(std::pair<std::pair<int, int>, std::pair<int, int> > sub_comparisons, int n){
+    
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >
+    , std::pair<std::pair<int, int>, std::pair<int, int> > > pair_of_pairs_of_pairs;
+
+    std::pair<std::pair<int, int>, std::pair<int, int> > ai_bi;
+    for (int i = 0; i < n; i += 2){
+        // ai_bi.first = sub_comparisons[i];
+        // ai_bi.second = sub_comparisons[i + 1];
+        // swapPairs_lv3v(ai_bi);
+        pair_of_pairs_of_pairs.push_back(ai_bi);
+    }
+    return pair_of_pairs_of_pairs;
+}
 //     b1       a1        b2       a2
 // [[2,11], [[0,17]] [[8,16], [[6,15]]
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
