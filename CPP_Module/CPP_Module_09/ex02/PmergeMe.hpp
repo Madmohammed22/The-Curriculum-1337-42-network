@@ -48,8 +48,10 @@ public:
     std::vector<std::pair<int, int> > ft_PmergeMe_Recursion(const std::vector<int>& vec, int n);
     std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > ft_PmergeMe_recussion_lv2(std::vector<std::pair<int, int> > sub_comparisons, int n);
     void swapPairs_lv2(std::pair<std::pair<int, int>, std::pair<int, int> > &ai_bi);
+    void swapPairs_lv3(std::pair<std::pair<int, int>, std::pair<int, int> >
+    , std::pair<std::pair<int, int>, std::pair<int, int> >& ai_bi);
     std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >, std::pair<std::pair<int, int>, std::pair<int, int> > > 
-    ft_PmergeMe_recussion_lv3(std::pair<std::pair<int, int>, std::pair<int, int> > sub_comparisons, int n);
+    ft_PmergeMe_recussion_lv3(std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > sub_comparisons, int n);
 };
 
 

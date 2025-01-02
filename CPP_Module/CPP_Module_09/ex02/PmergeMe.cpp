@@ -49,6 +49,18 @@ void PmergeMe::swapPairs_lv2(std::pair<std::pair<int, int>, std::pair<int, int> 
     }
 }
 
+// void PmergeMe::swapPairs_lv3(std::pair<std::pair<int, int>, std::pair<int, int> >
+// , std::pair<std::pair<int, int>, std::pair<int, int> >& ai_bi)
+// {
+//     std::pair<std::pair<int, int>, std::pair<int, int> > sub1_ai_bi = ai_bi.first;
+//     std::pair<std::pair<int, int>, std::pair<int, int> > sub2_ai_bi = ai_bi.second;
+//     if (sub1_ai_bi.second > sub2_ai_bi.second){
+//         std::pair<int,int> temp = ai_bi.first;
+//         ai_bi.first = ai_bi.second;
+//         ai_bi.second = temp; 
+//     }
+// }
+
 std::vector<std::pair<int, int> > 
 PmergeMe::ft_PmergeMe_Recursion(const std::vector<int>& vec, int n) 
 {
@@ -80,21 +92,61 @@ PmergeMe::ft_PmergeMe_recussion_lv2(std::vector<std::pair<int, int> >sub_compari
     return pair_of_pairs;
 }
 
-std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >, std::pair<std::pair<int, int>, std::pair<int, int> > > 
-PmergeMe::ft_PmergeMe_recussion_lv3(std::pair<std::pair<int, int>, std::pair<int, int> > sub_comparisons, int n){
-    
-    std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >
-    , std::pair<std::pair<int, int>, std::pair<int, int> > > pair_of_pairs_of_pairs;
+//             b1       a1        b2       a2
+// [[[2,11] [0,17] [8,16] [6,15]], [[2,11] [0,17] [8,16] [6,15]] ]
+std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >, std::pair<std::pair<int, int>, std::pair<int, int> >> 
 
-    std::pair<std::pair<int, int>, std::pair<int, int> > ai_bi;
+PmergeMe::ft_PmergeMe_recussion_lv3(std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > >  sub_comparisons, int n){
+
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >, std::pair<std::pair<int, int>, std::pair<int, int> > > pair_of_pairs_of_pairs;
+
+    std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > ai_bi;
+
+
+    std::vector< std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > >ai_bi_vec;
+
+    
+std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >, std::pair<std::pair<int, int>, std::pair<int, int> >> pair_of_pairs_of_pairs; 
+        pair_of_pairs_of_pairs;
+
+    std::pair<std::pair<std::pair<int, int>, std::pair<int, int> >,
+    std::pair<std::pair<int, int>, std::pair<int, int> > > var1;
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int> >,
+    std::pair<std::pair<int, int>, std::pair<int, int> > >pair_of_pairs_of_pairs;
+    // std::pair<std::pair<int, int>, std::pair<int, int> >,
+    // std::pair<std::pair<int, int>, std::pair<int, int> > > test;
+    std::pair<std::pair<std::pair<int, int>, std::pair<int, int> >, std::pair<std::pair<int, int>, std::pair<int, int> > >var3;
+    
     for (int i = 0; i < n; i += 2){
-        // ai_bi.first = sub_comparisons[i];
-        // ai_bi.second = sub_comparisons[i + 1];
+        ai_bi.first = sub_comparisons[i];
+        ai_bi.second = sub_comparisons[i + 1];
         // swapPairs_lv3v(ai_bi);
-        pair_of_pairs_of_pairs.push_back(ai_bi);
+        pair_of_pairs_of_pairs.pop_back();
+        // pair_of_pairs_of_pairs.push_back(var1);
     }
+    // s.pop_back()
     return pair_of_pairs_of_pairs;
 }
+
+
 //     b1       a1        b2       a2
 // [[2,11], [[0,17]] [[8,16], [[6,15]]
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
