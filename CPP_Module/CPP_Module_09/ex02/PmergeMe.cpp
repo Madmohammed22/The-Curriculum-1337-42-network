@@ -186,6 +186,50 @@ std::vector<int> insertVector_lv2(std::vector<std::pair<std::pair<int, int>, std
     return buffer;
 }
 
+std::vector<int> insertVector_lv3(std::vector<std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > > return_pair_lv3, std::pair<std::pair<int, int>, std::pair<int, int> > last_element
+            , std::pair<int, int> last_element_v1,  int flag){
+
+    std::vector<int> buffer;
+    for (size_t i = 0; i < return_pair_lv3.size(); i++){
+        std::pair<std::pair<int, int>, std::pair<int, int> > ai = return_pair_lv3[i].first;
+        std::pair<std::pair<int, int>, std::pair<int, int> > bi = return_pair_lv3[i].second;
+        std::pair<int, int> ai_v1 = ai.first;
+        std::pair<int, int> bi_v1 = ai.second;
+        std::pair<int, int> ai_v2 = bi.first;
+        std::pair<int, int> bi_v2 = bi.second;
+        buffer.push_back(ai_v1.first);
+        buffer.push_back(ai_v1.second);
+        buffer.push_back(bi_v1.first);
+        buffer.push_back(bi_v1.second);
+        buffer.push_back(ai_v2.first);
+        buffer.push_back(ai_v2.second);
+        buffer.push_back(bi_v2.first);
+        buffer.push_back(bi_v2.second);
+    }
+
+    if (flag == 0){
+        std::pair<int, int> lai = last_element.first;
+        std::pair<int, int> lbi = last_element.second;
+        buffer.push_back(lai.first);
+        buffer.push_back(lai.second);
+        buffer.push_back(lbi.first);
+        buffer.push_back(lbi.second);
+        buffer.push_back(last_element_v1.first);
+        buffer.push_back(last_element_v1.second);
+    }
+    return buffer;
+}
+
+
 
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
 {
@@ -226,8 +270,6 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
         std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > return_pair_lv2
             = ft_PmergeMe_recursion_lv2(return_pair_lv1, return_pair_lv1.size() - 1);
         vec = insertVector_lv2(return_pair_lv2, return_pair_lv1.front(), 0);
-        displayNumber(vec);
-        std::cout << "----------------------------" << std::endl;
 
         for (size_t i = 0; i < return_pair_lv2.size(); i++){
             std::pair<int, int> ai = return_pair_lv2[i].first;
@@ -235,6 +277,8 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
             std::cout << "[" << ai.first << "," << ai.second << "]" << ", " << "[" << bi.first << "," << bi.second << "]" << " | " << std::ends;
         }
         std::cout << "" << std::endl;
+        std::cout << "----------------------------" << std::endl;
+        displayNumber(vec);
         std::cout << "----------------------------" << std::endl;
         std::reverse(return_pair_lv2.begin(), return_pair_lv2.end());
         std::vector<std::pair<
@@ -260,6 +304,10 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
                 << "[" << ai_2.first << " " << ai_2.second << " " << bi_2.first << " " << bi_2.second << "]" << " | " << std::ends;
         }
         std::cout << "" << std::endl;
+        std::cout << "----------------------------" << std::endl;
+        vec = insertVector_lv3(return_pair_lv3, return_pair_lv2.front(),return_pair_lv1.front(), 0);
+        displayNumber(vec);
+        
     }
     return vec;
 }
