@@ -61,7 +61,9 @@ void swapPairs_lv3(std::pair<
 {
     std::pair<std::pair<int, int>, std::pair<int, int> > sub1_ai_bi = ai_bi.first;
     std::pair<std::pair<int, int>, std::pair<int, int> > sub2_ai_bi = ai_bi.second;
-    if (sub1_ai_bi.second > sub2_ai_bi.second){
+    std::pair<int, int> sub1_ai_bi_v1 = sub1_ai_bi.second;
+    std::pair<int, int> sub2_ai_bi_v1 = sub2_ai_bi.second;
+    if (sub1_ai_bi_v1.second > sub2_ai_bi_v1.second){
         std::pair<std::pair<int, int>, std::pair<int, int> > temp = ai_bi.first;
         ai_bi.first = ai_bi.second;
         ai_bi.second = temp; 
