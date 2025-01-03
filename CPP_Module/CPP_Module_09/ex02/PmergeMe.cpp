@@ -102,10 +102,11 @@ void swapPairs_lv4(
                             std::pair<int, int>
                 >
             > sub1_ai_bi = ai_bi.first;
-
+    
     std::pair<std::pair<int, int>, std::pair<int, int> > sub1_ai_bi_v1 = sub1_ai_bi.second;
     std::pair<int, int> sub1_ai_bi_v2 = sub1_ai_bi_v1.second;
     // sub1_ai_bi_v2.second // 17
+    // std::cout << "--> " << sub1_ai_bi_v2.second << " <----" << std::endl;
     std::pair<
                 std::pair<
                             std::pair<int, int>, 
@@ -119,7 +120,10 @@ void swapPairs_lv4(
     std::pair<std::pair<int, int>, std::pair<int, int> > sub2_ai_bi_v1 = sub2_ai_bi.second;
     std::pair<int, int> sub2_ai_bi_v2 = sub2_ai_bi_v1.second;
     // sub2_ai_bi_v2.second // 21;
+    // std::cout << "--> " << sub2_ai_bi_v2.second << " <----" << std::endl;
+
     if (sub1_ai_bi_v2.second > sub2_ai_bi_v2.second){
+        // std::cout << "I was here " << std::endl;
             std::pair<
                 std::pair<
                             std::pair<int, int>, 
@@ -284,7 +288,6 @@ std::vector<std::pair<std::pair<
                         >
         >sub_comparisons, int n)
 {
-
     std::vector<std::pair<std::pair<
                             std::pair<
                                     std::pair<int, int>, 
@@ -306,8 +309,9 @@ std::vector<std::pair<std::pair<
                         >
                     >    
             >pair_of_pair_of_pairs;
-    if (n <= 0)
+    if (n <= 0){
         return pair_of_pair_of_pairs;
+    }
 
     std::pair<std::pair<
                             std::pair<
@@ -329,9 +333,9 @@ std::vector<std::pair<std::pair<
                                 >
                         >
                     >ai_bi(sub_comparisons[n], sub_comparisons[n - 1]);
-    // swap
+    
     swapPairs_lv4(ai_bi);
-
+    pair_of_pair_of_pairs.push_back(ai_bi);
     std::vector<std::pair<std::pair<
                         std::pair<
                                 std::pair<int, int>, 
@@ -354,7 +358,6 @@ std::vector<std::pair<std::pair<
                 >    
         >lv4_pair_of_pair_of_pairs = ft_PmergeMe_recursion_lv4(sub_comparisons, n - 2);
     pair_of_pair_of_pairs.insert(pair_of_pair_of_pairs.end(), lv4_pair_of_pair_of_pairs.begin(), lv4_pair_of_pair_of_pairs.end());
-
     return pair_of_pair_of_pairs;
 }
 std::vector<int> insertVector_lv3(
@@ -481,7 +484,72 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
         vec = insertVector_lv3(return_pair_lv3, return_pair_lv2.front(),return_pair_lv1.front(), 0);
         displayNumber(vec);
         std::cout << "----------------------------" << std::endl;
+        std::reverse(return_pair_lv3.begin(), return_pair_lv3.end());
+        std::vector<std::pair<std::pair<
+                        std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                    >, std::pair<
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                    >
+                >    
+        >return_pair_lv4 = ft_PmergeMe_recursion_lv4(return_pair_lv3, return_pair_lv3.size() - 1);
+        std::reverse(return_pair_lv4.begin(), return_pair_lv4.end());
+        for (size_t i = 0; i < return_pair_lv4.size() ; i++)
+        {
+            std::pair<
+                    std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                    std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                    >
+            > sub1_ai_bi = return_pair_lv4[i].first;
+
+            std::pair<
+                    std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                    std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                    >
+            > sub2_ai_bi = return_pair_lv4[i].second;
+            std::pair<std::pair<int, int>, std::pair<int, int> > sub1_ai_bi_v1 = sub1_ai_bi.first;
+            std::pair<int, int> v1 = sub1_ai_bi_v1.first;
+            std::pair<int, int> v2 = sub1_ai_bi_v1.second;
+            std::pair<std::pair<int, int>, std::pair<int, int> > sub2_ai_bi_v1 = sub1_ai_bi.second;
+            std::pair<int, int> V1 = sub2_ai_bi_v1.first;
+            std::pair<int, int> V2 = sub2_ai_bi_v1.second; 
+            std::pair<std::pair<int, int>, std::pair<int, int> > sub1_ai_bi_v2 = sub2_ai_bi.first;
+            std::pair<int, int> l1 = sub1_ai_bi_v2.first;
+            std::pair<int, int> l2 = sub1_ai_bi_v2.second; 
+            std::pair<std::pair<int, int>, std::pair<int, int> > sub2_ai_bi_v2 = sub2_ai_bi.second;
+            std::pair<int, int> L1 = sub2_ai_bi_v2.first;
+            std::pair<int, int> L2 = sub2_ai_bi_v2.second;
+            std::cout << "[" << " [" << "[" << v1.first << " " << v1.second << " " << v2.first << " " << v2.second << "] " <<
+                        "[" << V1.first << " " << V1.second  << " " << V2.first << " " << V2.second << "]" << "]" << " , " 
+                    << "[" << "[" << l1.first << " " << l1.second << " " << l2.first << " " << l2.second << "], " << 
+                    "[" << L1.first << " " << L1.second << " " << L2.first << " " <<  L2.second << "]" << "]" << " ]" << std::ends;
+        }
         
+        std::cout << "" << std::endl;
+        std::cout << "----------------------------" << std::endl;
     }
     return vec;
 }
