@@ -31,7 +31,7 @@ void PmergeMe::displayNumber(std::vector<int> vec)
     std::cout << "" << std::endl;
 }
 
-void PmergeMe::swapPairs(std::pair<int, int> &ai_bi)
+void PmergeMe::swapPairs_lv1(std::pair<int, int> &ai_bi)
 {
     int temp = ai_bi.first;
     ai_bi.first = ai_bi.second;
@@ -43,9 +43,8 @@ void PmergeMe::swapPairs_lv2(std::pair<std::pair<int, int>, std::pair<int, int> 
     std::pair<int, int> sub1_ai_bi = ai_bi.first;
     std::pair<int, int> sub2_ai_bi = ai_bi.second;
     if (sub1_ai_bi.second > sub2_ai_bi.second){
-        std::pair<int,int> temp = ai_bi.first;
-        ai_bi.first = ai_bi.second;
-        ai_bi.second = temp; 
+        ai_bi.first = sub2_ai_bi;
+        ai_bi.second = sub1_ai_bi; 
     }
 }
 
@@ -74,31 +73,30 @@ PmergeMe::ft_PmergeMe_Recursion(const std::vector<int>& vec, int n)
 {
     std::vector<std::pair<int, int> > pairwise_comparison;
     if (n <= 0)
-        return pairwise_comparison; 
-    // if (!(n % 2) && n <= 1) 
-    //     return pairwise_comparison;
-    std::pair<int, int> ai_bi(vec[n - 1], vec[n]); 
+        return pairwise_comparison;
+    std::pair<int, int> ai_bi(vec[n], vec[n - 1]);
     if (ai_bi.first > ai_bi.second)
-        swapPairs(ai_bi); 
+        swapPairs_lv1(ai_bi); 
     pairwise_comparison.push_back(ai_bi); 
     std::vector<std::pair<int, int> > sub_comparisons = ft_PmergeMe_Recursion(vec, n - 2); 
     pairwise_comparison.insert(pairwise_comparison.end(), sub_comparisons.begin(), sub_comparisons.end()); 
-
     return pairwise_comparison;
 }
+
 std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > 
-PmergeMe::ft_PmergeMe_recussion_lv2(std::vector<std::pair<int, int> >sub_comparisons, int n){
+PmergeMe::ft_PmergeMe_recursion_lv2(std::vector<std::pair<int, int> > sub_comparisons, int n){
     
     std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > pair_of_pairs;
-    std::pair<std::pair<int, int>, std::pair<int, int> > ai_bi;
-    for (int i = 0; i < n; i += 2){
-        ai_bi.first = sub_comparisons[i];
-        ai_bi.second = sub_comparisons[i + 1];
-        swapPairs_lv2(ai_bi);
-        pair_of_pairs.push_back(ai_bi);
-    }
+    if (n <= 0)
+        return pair_of_pairs;
+    std::pair<std::pair<int, int>, std::pair<int, int> > ai_bi(sub_comparisons[n], sub_comparisons[n - 1]);
+    swapPairs_lv2(ai_bi);
+    pair_of_pairs.push_back(ai_bi);
+    std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > lv2_pair_of_pairs = ft_PmergeMe_recursion_lv2(sub_comparisons, n - 2);
+    pair_of_pairs.insert(pair_of_pairs.end(), lv2_pair_of_pairs.begin(), lv2_pair_of_pairs.end());
     return pair_of_pairs;
 }
+
 
 //             b1       a1        b2       a2
 // [[[2,11] [0,17] [8,16] [6,15]], [[2,11] [0,17] [8,16] [6,15]] ]
@@ -114,16 +112,6 @@ std::vector<std::pair<
         > > ft_PmergeMe_recussion_lv3(std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > >  sub_comparisons, int n)
 {
 
-    std::pair<
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >, 
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >
-            > ai_bi;
 
     std::vector<std::pair<
                 std::pair<
@@ -136,6 +124,32 @@ std::vector<std::pair<
                 >
             > >pair_of_pairs_of_pairs;
 
+    if (n <= 0){
+        return pair_of_pairs_of_pairs;
+    }
+    
+    std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > ai_bi(sub_comparisons[n], sub_comparisons[n - 1]);
+    
+    swapPairs_lv3(ai_bi);
+    std::vector<std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > >lv3_pair_of_pairs_of_pairs = ft_PmergeMe_recussion_lv3(sub_comparisons, n - 2);
     for (int i = 0; i < n; i++){
         ai_bi.first = sub_comparisons[i];
         ai_bi.second = sub_comparisons[i + 1];
@@ -147,16 +161,41 @@ std::vector<std::pair<
 
 //     b1       a1        b2       a2
 // [[2,11], [[0,17]] [[8,16], [[6,15]]
+std::vector<int> insertVector(std::vector<std::pair<int, int> > return_pair_lv1, int last_element, int flag){
+
+    std::vector<int> buffer;
+    for (size_t i = 0; i < return_pair_lv1.size(); i++){
+        // std::cout << return_pair_lv1[i].first << " " << return_pair_lv1[i].second << std::endl;
+        buffer.push_back(return_pair_lv1[i].first);
+        buffer.push_back(return_pair_lv1[i].second);
+    }
+    if (flag == 0)
+        buffer.push_back(last_element);
+    return buffer;
+}
+
+
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
 {
-    if (vec.size() % 2){
-        std::vector<std::pair<int, int> > return_pair_lv1 = ft_PmergeMe_Recursion(vec, vec.size() - 2);
+    if (vec.size() % 2 != 0){
+        std::vector<std::pair<int, int> > return_pair_lv1 = ft_PmergeMe_Recursion(vec, (vec.size() - 1));
+        std::cout << "odd : " << std::ends;
         for (size_t i = 0; i < return_pair_lv1.size(); i++)
             std::cout << "[" << return_pair_lv1[i].first << "," << return_pair_lv1[i].second << "]" << " | " << std::ends;
-        std::vector<int>::iterator last = vec.end();
-        std::cout << *last << " | " << std::endl;
+        std::cout << "" << std::endl;
         std::cout << "----------------------------" << std::endl;
-        
+        vec = insertVector(return_pair_lv1, vec.front(), 0);
+        std::vector<int>::iterator begin = vec.begin();
+        std::vector<int>::iterator end = vec.end();
+        while (begin != end)
+        {
+            std::cout << *begin << " " << std::ends;
+            begin++;
+        }
+        std::cout << "" << std::endl;
+        std::cout << "2 pair size :" << return_pair_lv1.size() << std::endl;
+        return vec;
+        std::cout << "----------------------------" << std::endl;
         std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > return_pair_lv2
             = ft_PmergeMe_recussion_lv2(return_pair_lv1, return_pair_lv1.size() - 2);
         for (size_t i = 0; i < return_pair_lv2.size(); i++){
@@ -166,7 +205,6 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
         }
         for (size_t i = return_pair_lv1.size() - 1; i <= return_pair_lv1.size() - 1; i++){
             std::cout << "[" << return_pair_lv1[i].first << ", " << return_pair_lv1[i].second << "]" << std::ends; 
-            std::cout << "I was here" << std::endl;
         }
         std::cout << "" << std::endl;
     }
@@ -176,9 +214,24 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
             std::cout << "[" << return_pair_lv1[i].first << "," << return_pair_lv1[i].second << "]" << " | " << std::ends;
         std::cout << "" << std::endl;
         std::cout << "----------------------------" << std::endl;
+        vec = insertVector(return_pair_lv1, vec.front(), 1);
+        std::vector<int>::iterator begin = vec.begin();
+        std::vector<int>::iterator end = vec.end();
+        while (begin != end)
+        {
+            std::cout << *begin << " " << std::ends;
+            begin++;
+        }
+        std::cout << "" << std::endl;
+        std::cout << "----------------------------" << std::endl;
 
+
+        // std::cout << "1 pair size :" << return_pair_lv1.size() << std::endl;
+
+        // return vec;
+        std::reverse(return_pair_lv1.begin(), return_pair_lv1.end());
         std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > return_pair_lv2
-            = ft_PmergeMe_recussion_lv2(return_pair_lv1, return_pair_lv1.size() - 1);
+            = ft_PmergeMe_recursion_lv2(return_pair_lv1, return_pair_lv1.size() - 1);
         for (size_t i = 0; i < return_pair_lv2.size(); i++){
             std::pair<int, int> ai = return_pair_lv2[i].first;
             std::pair<int, int> bi = return_pair_lv2[i].second;
