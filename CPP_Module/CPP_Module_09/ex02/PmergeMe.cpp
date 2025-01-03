@@ -438,39 +438,57 @@ std::vector<int> insertVector_lv4(
                     std::pair<int, int>
                 >
             > last_element_lv3,
-            std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > last_element_lv2,
+            std::pair<std::pair<int, int>, std::pair<int, int> > last_element_lv2,
             std::pair<int, int> last_element_lv1,  int flag){
 
             
 
     std::vector<int> buffer;
-    for (int i = 0; i < return_pair_lv4.size(); i++){
-        std::pair<
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >, 
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >
-            > ai_bi_1 = return_pair_lv4[i].first;
-
-        std::pair<
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >, 
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >
-            > ai_bi_2 = return_pair_lv4[i].second;
+    std::vector<int> buffe2;
+    std::vector<std::pair<
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                        > 
+                > test;
+    for (size_t i = 0; i < return_pair_lv4.size(); i++){
+        test.push_back(return_pair_lv4[i].first);
         
-        return_pair_lv4[i].second;
+        buffer = insertVector_lv3(test,last_element_lv3.first, last_element_lv2.first, flag);
+        test.clear();
+        test.push_back(return_pair_lv4[i].second);
+        buffe2 = insertVector_lv3(test,last_element_lv3.second, last_element_lv2.second, flag);
+        buffer.insert(buffer.end(), buffe2.begin(), buffe2.end());
+        // std::pair<
+        //         std::pair<
+        //             std::pair<int, int>, 
+        //             std::pair<int, int>
+        //         >, 
+        //         std::pair<
+        //             std::pair<int, int>, 
+        //             std::pair<int, int>
+        //         >
+        //     > ai_bi_1 = return_pair_lv4[i].second;
+        // std::pair<
+        //         std::pair<
+        //             std::pair<int, int>, 
+        //             std::pair<int, int>
+        //         >, 
+        //         std::pair<
+        //             std::pair<int, int>, 
+        //             std::pair<int, int>
+        //         >
+        //     > ai_bi_2 = return_pair_lv4[i].second;
+        
+        // return_pair_lv4[i].second;
         // buffer = insertVector_lv3(return_pair_lv4[i].first, last_element_lv3.first, );
     }
-
+    (void)last_element_lv1;
     return buffer;
 }
 
@@ -618,7 +636,7 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
         
         std::cout << "" << std::endl;
         std::cout << "----------------------------" << std::endl;
-        vec = insertVector_lv3(return_pair_lv3, return_pair_lv2.front(),return_pair_lv1.front(), 0);
+        vec = insertVector_lv4(return_pair_lv4, return_pair_lv3.front(),return_pair_lv2.front(), return_pair_lv1.front(), 1);
         displayNumber(vec);
     }
     return vec;
