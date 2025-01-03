@@ -545,7 +545,7 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
             std::cout << "[" << " [" << "[" << v1.first << " " << v1.second << " " << v2.first << " " << v2.second << "] " <<
                         "[" << V1.first << " " << V1.second  << " " << V2.first << " " << V2.second << "]" << "]" << " , " 
                     << "[" << "[" << l1.first << " " << l1.second << " " << l2.first << " " << l2.second << "], " << 
-                    "[" << L1.first << " " << L1.second << " " << L2.first << " " <<  L2.second << "]" << "]" << " ]" << std::ends;
+                    "[" << L1.first << " " << L1.second << " " << L2.first << " " <<  L2.second << "]" << "]" << " ] | " << std::ends;
         }
         
         std::cout << "" << std::endl;
