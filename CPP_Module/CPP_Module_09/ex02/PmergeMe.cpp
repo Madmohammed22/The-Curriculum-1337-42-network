@@ -49,14 +49,14 @@ void PmergeMe::swapPairs_lv2(std::pair<std::pair<int, int>, std::pair<int, int> 
 }
 
 void swapPairs_lv3(std::pair<
-                        std::pair<
-                            std::pair<int, int>, 
-                            std::pair<int, int>
-                        >, 
-                        std::pair<
-                            std::pair<int, int>, 
-                            std::pair<int, int>
-                        >
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
                     > &ai_bi)
 {
     std::pair<std::pair<int, int>, std::pair<int, int> > sub1_ai_bi = ai_bi.first;
@@ -100,27 +100,27 @@ PmergeMe::ft_PmergeMe_recursion_lv2(std::vector<std::pair<int, int> > sub_compar
 }
 
 std::vector<std::pair<
-            std::pair<
-                std::pair<int, int>, 
-                std::pair<int, int>
-            >, 
-            std::pair<
-                std::pair<int, int>, 
-                std::pair<int, int>
-            >
+                        std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                        >, 
+                        std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                        >
         > > ft_PmergeMe_recursion_lv3(std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > >  sub_comparisons, int n)
 {
 
 
     std::vector<std::pair<
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >, 
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
             > >pair_of_pair_of_pairs;
 
     if (n <= 0){
@@ -141,14 +141,14 @@ std::vector<std::pair<
     swapPairs_lv3(ai_bi);
     pair_of_pair_of_pairs.push_back(ai_bi);
     std::vector<std::pair<
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >, 
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
             > >lv3_pair_of_pairs_of_pairs = ft_PmergeMe_recursion_lv3(sub_comparisons, n - 2);
     pair_of_pair_of_pairs.insert(pair_of_pair_of_pairs.end(), lv3_pair_of_pairs_of_pairs.begin(),lv3_pair_of_pairs_of_pairs.end());
     return pair_of_pair_of_pairs;    
@@ -186,15 +186,16 @@ std::vector<int> insertVector_lv2(std::vector<std::pair<std::pair<int, int>, std
     return buffer;
 }
 
-std::vector<int> insertVector_lv3(std::vector<std::pair<
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >, 
-                std::pair<
-                    std::pair<int, int>, 
-                    std::pair<int, int>
-                >
+std::vector<int> insertVector_lv3(
+    std::vector<std::pair<
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
             > > return_pair_lv3, std::pair<std::pair<int, int>, std::pair<int, int> > last_element
             , std::pair<int, int> last_element_v1,  int flag){
 
@@ -307,6 +308,7 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
         std::cout << "----------------------------" << std::endl;
         vec = insertVector_lv3(return_pair_lv3, return_pair_lv2.front(),return_pair_lv1.front(), 0);
         displayNumber(vec);
+        std::cout << "----------------------------" << std::endl;
         
     }
     return vec;
