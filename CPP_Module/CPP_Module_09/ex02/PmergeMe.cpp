@@ -407,6 +407,74 @@ std::vector<int> insertVector_lv3(
 
 
 
+std::vector<int> insertVector_lv4(
+        std::vector<std::pair<std::pair<
+                        std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                    >, std::pair<
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                    >
+                >    
+        > return_pair_lv4, std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > last_element_lv3,
+            std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > last_element_lv2,
+            std::pair<int, int> last_element_lv1,  int flag){
+
+            
+
+    std::vector<int> buffer;
+    for (int i = 0; i < return_pair_lv4.size(); i++){
+        std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > ai_bi_1 = return_pair_lv4[i].first;
+
+        std::pair<
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >, 
+                std::pair<
+                    std::pair<int, int>, 
+                    std::pair<int, int>
+                >
+            > ai_bi_2 = return_pair_lv4[i].second;
+        
+        return_pair_lv4[i].second;
+        // buffer = insertVector_lv3(return_pair_lv4[i].first, last_element_lv3.first, );
+    }
+
+    return buffer;
+}
+
+
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
 {
     if (vec.size() % 2 != 0){
@@ -550,6 +618,8 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
         
         std::cout << "" << std::endl;
         std::cout << "----------------------------" << std::endl;
+        vec = insertVector_lv3(return_pair_lv3, return_pair_lv2.front(),return_pair_lv1.front(), 0);
+        displayNumber(vec);
     }
     return vec;
 }
