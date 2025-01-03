@@ -70,6 +70,71 @@ void swapPairs_lv3(std::pair<
     }
 }
 
+void swapPairs_lv4(
+                    std::pair<std::pair<
+                            std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >, 
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >
+                        >, std::pair<
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >, 
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >
+                        >
+                    >ai_bi)
+{
+    std::pair<
+                std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                        >, 
+                std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                >
+            > sub1_ai_bi = ai_bi.first;
+
+    std::pair<std::pair<int, int>, std::pair<int, int> > sub1_ai_bi_v1 = sub1_ai_bi.second;
+    std::pair<int, int> sub1_ai_bi_v2 = sub1_ai_bi_v1.second;
+    // sub1_ai_bi_v2.second // 17
+    std::pair<
+                std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                        >, 
+                std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                >
+            > sub2_ai_bi = ai_bi.second;
+    std::pair<std::pair<int, int>, std::pair<int, int> > sub2_ai_bi_v1 = sub2_ai_bi.second;
+    std::pair<int, int> sub2_ai_bi_v2 = sub2_ai_bi_v1.second;
+    // sub2_ai_bi_v2.second // 21;
+    if (sub1_ai_bi_v2.second > sub2_ai_bi_v2.second){
+            std::pair<
+                std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                        >, 
+                std::pair<
+                            std::pair<int, int>, 
+                            std::pair<int, int>
+                >
+            > temp = ai_bi.first;
+        ai_bi.first = ai_bi.second;
+        ai_bi.second = temp;
+    }
+}
+
 std::vector<std::pair<int, int> > 
 PmergeMe::ft_PmergeMe_Recursion_lv1(const std::vector<int>& vec, int n) 
 {
@@ -186,6 +251,112 @@ std::vector<int> insertVector_lv2(std::vector<std::pair<std::pair<int, int>, std
     return buffer;
 }
 
+std::vector<std::pair<std::pair<
+                                    std::pair<
+                                        std::pair<int, int>, 
+                                        std::pair<int, int>
+                                    >, 
+                                    std::pair<
+                                        std::pair<int, int>, 
+                                        std::pair<int, int>
+                                    >
+                            >, std::pair<
+                                    std::pair<
+                                        std::pair<int, int>, 
+                                        std::pair<int, int>
+                                    >, 
+                                    std::pair<
+                                        std::pair<int, int>, 
+                                        std::pair<int, int>
+                                    >
+                            >
+                        >
+>ft_PmergeMe_recursion_lv4(
+            std::vector<std::pair<
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                        >
+        >sub_comparisons, int n)
+{
+
+    std::vector<std::pair<std::pair<
+                            std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >, 
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >
+                        >, std::pair<
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >, 
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >
+                        >
+                    >    
+            >pair_of_pair_of_pairs;
+    if (n <= 0)
+        return pair_of_pair_of_pairs;
+
+    std::pair<std::pair<
+                            std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >, 
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >
+                        >, std::pair<
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >, 
+                                std::pair<
+                                    std::pair<int, int>, 
+                                    std::pair<int, int>
+                                >
+                        >
+                    >ai_bi(sub_comparisons[n], sub_comparisons[n - 1]);
+    // swap
+    swapPairs_lv4(ai_bi);
+
+    std::vector<std::pair<std::pair<
+                        std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                    >, std::pair<
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >, 
+                            std::pair<
+                                std::pair<int, int>, 
+                                std::pair<int, int>
+                            >
+                    >
+                >    
+        >lv4_pair_of_pair_of_pairs = ft_PmergeMe_recursion_lv4(sub_comparisons, n - 2);
+    pair_of_pair_of_pairs.insert(pair_of_pair_of_pairs.end(), lv4_pair_of_pair_of_pairs.begin(), lv4_pair_of_pair_of_pairs.end());
+
+    return pair_of_pair_of_pairs;
+}
 std::vector<int> insertVector_lv3(
     std::vector<std::pair<
                             std::pair<
@@ -196,8 +367,9 @@ std::vector<int> insertVector_lv3(
                                 std::pair<int, int>, 
                                 std::pair<int, int>
                             >
-            > > return_pair_lv3, std::pair<std::pair<int, int>, std::pair<int, int> > last_element
-            , std::pair<int, int> last_element_v1,  int flag){
+                        > 
+                > return_pair_lv3, std::pair<std::pair<int, int>, std::pair<int, int> > last_element
+                    , std::pair<int, int> last_element_v1,  int flag){
 
     std::vector<int> buffer;
     for (size_t i = 0; i < return_pair_lv3.size(); i++){
