@@ -445,6 +445,7 @@ std::vector<int> insertVector_lv4(
 
     std::vector<int> buffer;
     std::vector<int> buffe2;
+    std::vector<int> buffe3;
     std::vector<std::pair<
                             std::pair<
                                 std::pair<int, int>, 
@@ -464,31 +465,11 @@ std::vector<int> insertVector_lv4(
         test.push_back(return_pair_lv4[i].second);
         buffe2 = insertVector_lv3(test,last_element_lv3.second, last_element_lv2.second, flag);
         buffer.insert(buffer.end(), buffe2.begin(), buffe2.end());
-        // std::pair<
-        //         std::pair<
-        //             std::pair<int, int>, 
-        //             std::pair<int, int>
-        //         >, 
-        //         std::pair<
-        //             std::pair<int, int>, 
-        //             std::pair<int, int>
-        //         >
-        //     > ai_bi_1 = return_pair_lv4[i].second;
-        // std::pair<
-        //         std::pair<
-        //             std::pair<int, int>, 
-        //             std::pair<int, int>
-        //         >, 
-        //         std::pair<
-        //             std::pair<int, int>, 
-        //             std::pair<int, int>
-        //         >
-        //     > ai_bi_2 = return_pair_lv4[i].second;
-        
-        // return_pair_lv4[i].second;
-        // buffer = insertVector_lv3(return_pair_lv4[i].first, last_element_lv3.first, );
+        std::vector<std::pair<std::pair<int, int>, std::pair<int, int> > > test2;
+        test2.push_back(last_element_lv2);
+        buffe3 = insertVector_lv2(test2, last_element_lv1, 0);
+        buffer.insert(buffer.end(), buffe3.begin(), buffe3.end());
     }
-    (void)last_element_lv1;
     return buffer;
 }
 
