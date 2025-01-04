@@ -42,16 +42,6 @@ void PmergeMe::swapPairs_lv1(std::pair<int, int> &ai_bi)
     }
 }
 
-void PmergeMe::swapPairs_lv2(std::pair<std::pair<int, int>, std::pair<int, int> > &ai_bi)
-{
-    std::pair<int, int> sub1_ai_bi = ai_bi.first;
-    std::pair<int, int> sub2_ai_bi = ai_bi.second;
-    if (sub1_ai_bi.second > sub2_ai_bi.second){
-        ai_bi.first = sub2_ai_bi;
-        ai_bi.second = sub1_ai_bi; 
-    }
-}
-
 void insertion_sort(std::vector<std::pair<int, int> >&ai_bi, int n) {
     for (int i = 0; i <= n - 1; i++) {
         int j = i;
@@ -102,7 +92,16 @@ void Jacobsthal(int n, std::vector<int>&sequence)
         sequence.push_back(dp[i]);
     }
 }
-
+std::vector<int> sequence_index(std::vector<int>Jacobsthal){
+    std::vector<int> sequence;
+    for (int i = 0; i < Jacobsthal.size(); i++){
+        if (Jacobsthal[i + 1] && (Jacobsthal[i + 1] - Jacobsthal[i]) > 0){
+            for (int i = 0; i < (Jacobsthal[i + 1] - Jacobsthal[i]); i++){
+                sequence.push_back(Jacobsthal[i]++);
+            } // 1 , 2
+        }
+    }
+}
 std::vector<int> insertVector_lv1(std::vector<std::pair<int, int> > return_pair_lv1, int last_element, int flag){
 
     std::vector<int> buffer;
