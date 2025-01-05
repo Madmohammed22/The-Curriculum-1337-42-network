@@ -34,7 +34,7 @@ void PmergeMe::displayNumber(std::vector<int> vec)
 
 void PmergeMe::swapPairs_lv1(std::pair<int, int> &ai_bi)
 {
-    if (ai_bi.first < ai_bi.second) 
+    if (ai_bi.first > ai_bi.second) 
     {
         int temp = ai_bi.first;
         ai_bi.first = ai_bi.second;
@@ -45,7 +45,7 @@ void PmergeMe::swapPairs_lv1(std::pair<int, int> &ai_bi)
 void insertion_sort(std::vector<std::pair<int, int> >&ai_bi, int n) {
     for (int i = 0; i <= n - 1; i++) {
         int j = i;
-        while (j > 0 && ai_bi[j - 1].first > ai_bi[j].first) {
+        while (j > 0 && ai_bi[j - 1].first < ai_bi[j].first) {
             std::pair<int, int> temp = ai_bi[j - 1];
             ai_bi[j - 1] = ai_bi[j];
             ai_bi[j] = temp;
@@ -62,14 +62,14 @@ PmergeMe::ft_PmergeMe_Recursion_lv1(const std::vector<int>& vec, int n)
     if (n <= 0){
         if (vec.size() % 2 != 0){
             std::pair<int, int> ai_bi;
-            ai_bi.first = vec[n];
-            ai_bi.second = -1;
+            ai_bi.first = -1;
+            ai_bi.second = vec[n];
             pairwise_comparison.push_back(ai_bi); 
             return pairwise_comparison;
         }
         return pairwise_comparison;
     }
-    std::pair<int, int> ai_bi(vec[n], vec[n - 1]);
+    std::pair<int, int> ai_bi(vec[n - 1], vec[n]);
     swapPairs_lv1(ai_bi); 
     pairwise_comparison.push_back(ai_bi); 
     std::vector<std::pair<int, int> > sub_comparisons = ft_PmergeMe_Recursion_lv1(vec, n - 2); 
@@ -138,6 +138,12 @@ std::vector<int> insertVector_lv1(std::vector<std::pair<int, int> > return_pair_
     return buffer;
 }
 
+void increment(std::vector<std::pair<int, int> > s){
+    for (size_t i = 0; i < s.size(); i++){
+        s[i].second = s[i].second + 1;
+    }
+}
+
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
 {
     std::vector<std::pair<int, int> > return_pair_lv1 = ft_PmergeMe_Recursion_lv1(vec, vec.size() - 1);
@@ -146,45 +152,67 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
     std::cout << "" << std::endl;
     std::cout << "----------------------------" << std::endl;
     vec = insertVector_lv1(return_pair_lv1, vec.front(), 1);
-    displayNumber(vec);
-    std::cout << "----------------------------" << std::endl;
     insertion_sort(return_pair_lv1, return_pair_lv1.size() - 1);
+    for (size_t i = 0; i < return_pair_lv1.size(); i++)
+        std::cout << "[" << return_pair_lv1[i].first << "," << return_pair_lv1[i].second << "]" << " | " << std::ends;
+    std::cout << "" << std::endl;    
+    std::cout << "----------------------------" << std::endl;
+
     std::vector<int> ai;
     std::vector<int> bi;
-    for (size_t i = 0; i < return_pair_lv1.size(); i++){
-        std::cout << "[" << return_pair_lv1[i].first << "," << return_pair_lv1[i].second << "]" << " | " << std::ends;
 
-        ai.push_back(return_pair_lv1[i].first);
+    for (size_t i = 0; i < return_pair_lv1.size(); i++){ 
+        if (return_pair_lv1[i].first >= 0)
+            ai.push_back(return_pair_lv1[i].first);
         bi.push_back(return_pair_lv1[i].second);
     }
-    std::cout << "" << std::endl;
-
+    std::cout << "main-chain ai :" << std::ends;
     for (size_t i = 0; i < ai.size(); i++){
-        std::cout << "[" << i << "] " << ai[i] << " | " << std::ends;
+        std::cout << ai[i] << " " <<  std::ends;
     }
-
     std::cout << "" << std::endl;
+    std::cout << "bi :" << std::ends;
+    for (size_t i = 0; i < bi.size() ; i++){
+        std::cout << bi[i] << " " << std::ends;
+    }
+    std::cout << "" << std::endl;
+    std::vector<int> sequence;
+    Jacobsthal(bi.size(), sequence);
+    std::vector<int> _index = sequence_index(sequence);
+    std::vector<std::pair<int, int> > lbi;
+    for (size_t i = 0; i < _index.size(); i++){
+        std::cout << _index[i] - 1 << " " << std::ends;
+    }
     std::cout << "" << std::endl;
 
     for (size_t i = 0; i < bi.size(); i++){
-        std::cout << bi[i] << " " << std::ends;
+        std::pair<int, int> pair_wase;
+        pair_wase.first = bi[i];
+        pair_wase.second = i;
+        lbi.push_back(pair_wase);
     }
-    std::cout << "" << std::endl;    
-    std::cout << "----------------------" << std::endl;
-    
-    std::vector<int> sequence;
-    Jacobsthal(bi.size(), sequence);
-    for (size_t i = 0; i < sequence.size(); i++){
-        std::cout << sequence[i] << " " << std::ends;
-    }
-    std::cout << "" << std::endl;
 
-    std::vector<int> _index = sequence_index(sequence);
-    for (size_t i = 1; i < _index.size() ; i++){
-        size_t index = _index[i] - 1;
-        if (bi[index] != -1 && index < bi.size() - 1)
-            std::cout << "index " << index << " : " << bi[index] << " | " << std::ends;
+    // for (size_t i = 0; i < _index.size(); i++){
+    //     if ((size_t)(_index[i] - 1) <= bi.size() - 1){
+    //         std::cout << "[" << lbi[_index[i] - 1].first << ", " << lbi[_index[i] - 1].second  << "] " << std::ends;
+    //     }
+    // }
+    std::cout << "" << std::endl;
+    for (size_t i = 0; i < _index.size(); i++){
+        if (size_t(_index[i] - 1) <= bi.size() - 1){
+            int j = 0;
+            std::cout << "[" << lbi[_index[i] - 1].first << ", " << lbi[_index[i] - 1].second + j  << "], " << std::ends;
+            ai.insert(ai.begin() + lbi[_index[i] - 1].second + j, lbi[_index[i] - 1].first);
+            j++;
+
+        }
+    }
+    
+    std::cout << "" << std::endl;
+    for (size_t i = 0; i < ai.size(); i++){
+        std::cout << ai[i] << " " << std::ends;
     }
     std::cout << "" << std::endl;
+    exit(0);
     return vec;
 }
