@@ -152,19 +152,24 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
     std::vector<int> ai;
     std::vector<int> bi;
     for (size_t i = 0; i < return_pair_lv1.size(); i++){
+        std::cout << "[" << return_pair_lv1[i].first << "," << return_pair_lv1[i].second << "]" << " | " << std::ends;
+
         ai.push_back(return_pair_lv1[i].first);
         bi.push_back(return_pair_lv1[i].second);
     }
+    std::cout << "" << std::endl;
 
     for (size_t i = 0; i < ai.size(); i++){
-        std::cout << ai[i] << " " << std::ends;
+        std::cout << "[" << i << "] " << ai[i] << " | " << std::ends;
     }
+
+    std::cout << "" << std::endl;
     std::cout << "" << std::endl;
 
     for (size_t i = 0; i < bi.size(); i++){
         std::cout << bi[i] << " " << std::ends;
     }
-    std::cout << "" << std::endl;
+    std::cout << "" << std::endl;    
     std::cout << "----------------------" << std::endl;
     
     std::vector<int> sequence;
@@ -175,8 +180,10 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
     std::cout << "" << std::endl;
 
     std::vector<int> _index = sequence_index(sequence);
-    for (size_t i = 0; i < _index.size(); i++){
-        std::cout << _index[i] - 1 << " " << std::ends;
+    for (size_t i = 1; i < _index.size() ; i++){
+        size_t index = _index[i] - 1;
+        if (bi[index] != -1 && index < bi.size() - 1)
+            std::cout << "index " << index << " : " << bi[index] << " | " << std::ends;
     }
     std::cout << "" << std::endl;
     return vec;
