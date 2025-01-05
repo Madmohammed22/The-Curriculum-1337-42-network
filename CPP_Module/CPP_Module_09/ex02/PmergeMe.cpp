@@ -92,16 +92,39 @@ void Jacobsthal(int n, std::vector<int>&sequence)
         sequence.push_back(dp[i]);
     }
 }
+
+// 1 3 5 11 
+
+bool insert_if_not_exist(std::vector<int> sequence, int target){
+    if (sequence.empty())
+        return true;
+    
+    for (size_t i = 0; i < sequence.size(); i++){
+        if (sequence[i] == target)
+            return false;
+    }
+    return true;
+}
+
 std::vector<int> sequence_index(std::vector<int>Jacobsthal){
     std::vector<int> sequence;
-    for (int i = 0; i < Jacobsthal.size(); i++){
-        if (Jacobsthal[i + 1] && (Jacobsthal[i + 1] - Jacobsthal[i]) > 0){
-            for (int i = 0; i < (Jacobsthal[i + 1] - Jacobsthal[i]); i++){
-                sequence.push_back(Jacobsthal[i]++);
-            } // 1 , 2
+    for (size_t i = 0; i < Jacobsthal.size(); i++){
+        sequence.push_back(Jacobsthal[i]);
+        if ((Jacobsthal[i + 1] - Jacobsthal[i]) >= 0){ // 3 - 1 == 2 | 3 2
+            for (size_t t = 0; t <= (size_t)(Jacobsthal[i + 1] - Jacobsthal[i]); t++){
+                sequence.push_back(Jacobsthal[i + 1]--);
+            }
         }
     }
+
+    std::vector<int> real_sequence;
+    for (size_t i = 0; i < sequence.size(); i++){
+        if (insert_if_not_exist(real_sequence, sequence[i]) == true)
+            real_sequence.push_back(sequence[i]);
+    }
+    return real_sequence;
 }
+
 std::vector<int> insertVector_lv1(std::vector<std::pair<int, int> > return_pair_lv1, int last_element, int flag){
 
     std::vector<int> buffer;
@@ -114,7 +137,6 @@ std::vector<int> insertVector_lv1(std::vector<std::pair<int, int> > return_pair_
     }
     return buffer;
 }
-
 
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
 {
@@ -150,5 +172,12 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
     for (size_t i = 0; i < sequence.size(); i++){
         std::cout << sequence[i] << " " << std::ends;
     }
+    std::cout << "" << std::endl;
+
+    std::vector<int> _index = sequence_index(sequence);
+    for (size_t i = 0; i < _index.size(); i++){
+        std::cout << _index[i] - 1 << " " << std::ends;
+    }
+    std::cout << "" << std::endl;
     return vec;
 }
