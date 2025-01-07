@@ -27,6 +27,7 @@ int RPN::resultRPN(std::string expression)
         _Exit(1);
     }
     MutantStack<int> mstack;
+
     // std::stack<int> mstack;
     int first_operands;
     int second_operands;

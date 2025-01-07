@@ -10,3 +10,4 @@ int main(int argc, char **argv){
     std::cout << rpn.resultRPN(expression) << std::endl;
     return EXIT_SUCCESS;
 }
+

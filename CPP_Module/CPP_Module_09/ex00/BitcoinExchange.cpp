@@ -323,6 +323,7 @@ std::string BitcoinExchange::to_string(float number)
     return s;
 }
 
+
 std::list<std::string> BitcoinExchange::ReadFileCSV(std::string file_txt, BitcoinExchange *scalar)
 {
 

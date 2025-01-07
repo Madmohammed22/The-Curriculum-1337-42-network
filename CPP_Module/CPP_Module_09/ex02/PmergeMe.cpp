@@ -165,6 +165,13 @@ void searchInsert(std::vector<int>& nums, int target) {
     return ;
 }
 
+std::vector<int> new_bi(std::vector<int> &bi){
+    std::vector<int> buffer;
+    for (size_t i = 1; i < bi.size(); i++){
+        buffer.push_back(bi[i]);
+    }
+    return buffer;
+}
 std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
 {
     std::vector<std::pair<int, int> > return_pair_lv1 = ft_PmergeMe_Recursion_lv1(vec, vec.size() - 1);
@@ -177,17 +184,28 @@ std::vector<int> PmergeMe::ft_PmergeMe(std::vector<int> vec)
     }
     if (bi.front() != -1)
         ai.insert(ai.begin(), bi.front());
+    bi = new_bi(bi);
     std::vector<int> sequence;
     Jacobsthal(bi.size(), sequence);
     std::vector<int> _index = sequence_index(sequence);
     int target_as_data;
-    for (size_t i = 0; i < _index.size(); i++){
-        if (!((size_t)(_index[i] - 1) > bi.size() - 1)){
-            target_as_data = bi[_index[i] - 1]; 
-            searchInsert(ai, target_as_data);
-        }
+    size_t size_bi = bi.size();
+    for (size_t i = 0; i < size_bi; i++){
+        target_as_data = bi.back();
+        bi.pop_back();
+        searchInsert(ai, target_as_data);
     }
+    // for (size_t i = 0; i < _index.size(); i++){
+    //     if (((size_t)(_index[i]) < bi.size())){
+    //         target_as_data = bi[_index[i] - 1]; 
+    //         searchInsert(ai, target_as_data);
+    //     }
+    // }
 
+    // for (size_t i = 0; i < bi.size(); i++){
+    //     // std::cout << "I was here " << std::endl;
+    //     std::cout << bi[i] << std::endl;
+    // }
     std::cout << "after :   " << std::ends;
     for (size_t i = 0; i < ai.size(); i++){
         std::cout << ai[i] << " " <<  std::ends;
