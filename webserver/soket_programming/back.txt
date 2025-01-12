@@ -34,3 +34,24 @@
     /* Start accepting connections. */
     if (listen(serverSocket, 5) < 0)
         return perror("listen stream socket"), EXIT_FAILURE;
+
+
+To get extra information about running multiple media content in your web server, you can search for the following topics:
+
+Serving Static Files in Web Servers: This will give you an overview of how to configure your web server to serve different types of files like HTML, CSS, JavaScript, images, videos, etc.
+MIME Types Configuration: Learn about configuring the correct MIME types for different file extensions to ensure they are handled properly by the browser.
+C++ Web Server Examples: Look for examples and tutorials on how to implement a web server in C++, which often include handling various media types.
+HTTP Response Headers: Understand the different HTTP response headers, especially Content-Type, and how to set them based on the file type.
+Asynchronous File Serving: Learn about asynchronous or non-blocking I/O operations to efficiently serve multiple media files simultaneously.
+File Streaming in C++: Find information on how to stream large files (like videos) in chunks to avoid loading the entire file into memory.
+These search terms should help you find detailed guides, examples, and best practices for serving multiple types of media content from your web server.
+
+Suggested Search Queries:
+"Serving static files in C++ web server"
+"MIME types configuration for web server"
+"C++ web server handling HTML CSS MP4"
+"HTTP response headers for media files"
+"Asynchronous file serving in C++"
+"Streaming large files in C++ web server"
+These queries should provide you with a good amount of information to enhance your web server's capabilities.
+
