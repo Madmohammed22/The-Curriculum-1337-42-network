@@ -2,7 +2,7 @@ SRC = server.cpp
 OBJ = $(SRC:.cpp=.o)
 NAME = webserver
 CXX = c++
-CXXFLAGS = #-Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 Leak = -fsanitize=address
 
 all: $(NAME)
