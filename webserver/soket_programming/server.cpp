@@ -6,7 +6,6 @@ Server::Server()
 
 Server::Server(const Server &Init)
 {
-    (void)Init;
 }
 
 Server &Server::operator=(const Server &Init)
