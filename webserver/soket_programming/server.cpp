@@ -6,6 +6,7 @@ Server::Server()
 
 Server::Server(const Server &Init)
 {
+    (void)Init;
 }
 
 Server &Server::operator=(const Server &Init)
@@ -53,8 +54,10 @@ std::string Server::getContentType(const std::string &path)
 
 std::string readFile(const std::string &path)
 {
+    if (path.empty())
+        return "";
     std::string new_path;
-    new_path = "/var/www/NFT-preview-card-component/" + path;
+    new_path = "/var/www/Resources/" + path;
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
     {
@@ -69,8 +72,10 @@ std::string readFile(const std::string &path)
 
 std::string Server::parsRequest(std::string request)
 {
+    if (request.empty())
+        return "";
     std::cout << "Received request: " << request << std::endl;
-    std::string filePath = "index.html";
+    std::string filePath = "video.mp4";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -82,15 +87,10 @@ std::string Server::parsRequest(std::string request)
 
 std::string Server::parsRequest404(std::string request)
 {
-    (void)request;
-    std::cout << "Received request: " << request << std::endl;
+    if (request.empty())
+        return "";
+    std::cout << "Received request 404: " << request << std::endl;
     std::string filePath = "errorPage.html";
-    // if (request.find("GET / ") == std::string::npos)
-    // {
-    //     size_t startPos = request.find("GET /") + 5;
-    //     size_t endPos = request.find(" HTTP/");
-    //     filePath = request.substr(startPos, endPos - startPos);
-    // }
     return filePath;
 }
 
@@ -101,25 +101,34 @@ std::string Server::creatHttpResponse(std::string contentType, std::string conte
     std::string str = oss.str();
 
     std::string httpResponse = "HTTP/1.1 200 OK\r\n"
-                            "Content-Type: " + contentType + "\r\n"
-                            "Content-Length: " + str + "\r\n"
-                            "\r\n" + content;
+                               "Content-Type: " +
+                               contentType + "\r\n"
+                                             "Content-Length: " +
+                               str + "\r\n"
+                                     "\r\n" +
+                               content;
     return httpResponse;
 }
 
-std::string Server::creatHttpResponseForPage404(std::string contentType, std::string content)
+std::string Server::creatHttpResponseForPage404(std::string contentType, std::ifstream &file)
 {
+    std::stringstream content_v1;
+    content_v1 << file.rdbuf();
+    file.close();
+    std::string content = content_v1.str();
     std::ostringstream oss;
     oss << content.length();
     std::string str = oss.str();
 
     std::string httpResponse = "HTTP/1.1 404 Not Found\r\n"
-                            "Content-Type: " + contentType + "\r\n"
-                            "Content-Length: " + str + "\r\n"
-                            "\r\n" + content;
+                               "Content-Type: " +
+                               contentType + "\r\n"
+                                             "Content-Length: " +
+                               str + "\r\n"
+                                     "\r\n" +
+                               content;
     return httpResponse;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -129,8 +138,10 @@ int main(int argc, char **argv)
         std::cout << "correct input : ./webserv [configuration file]" << std::endl;
         return EXIT_FAILURE;
     }
+
     Server *server = new Server();
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    int serverSocket = 0;
+    serverSocket = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
     if (serverSocket < 0)
         return perror("opening stream socket."), EXIT_FAILURE;
 
@@ -141,36 +152,67 @@ int main(int argc, char **argv)
     int len = sizeof(serverAddress);
     int a = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEPORT, &a, sizeof(int)) < 0)
-        return perror(NULL), EXIT_FAILURE;
+        return perror(NULL), delete server, EXIT_FAILURE;
     if (bind(serverSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
-        return perror("binding stream socket"), EXIT_FAILURE;
+        return perror("binding stream socket"), delete server, EXIT_FAILURE;
 
     if (getsockname(serverSocket, (struct sockaddr *)&serverAddress, (socklen_t *)&len) == -1)
-        return perror("getting socket name."), EXIT_FAILURE;
+        return perror("getting socket name."), delete server, EXIT_FAILURE;
     std::cout << "Socket port " << ntohs(serverAddress.sin_port) << std::endl;
 
     if (listen(serverSocket, 5) < 0)
-        return perror("listen stream socket"), EXIT_FAILURE;
+        return perror("listen stream socket"), delete server, EXIT_FAILURE;
 
-    int msgsocket = 0;
+    // int msgsocket = 0;
     char buffer[1024];
     size_t rval = 0;
-
     sockaddr_in clientAddress;
     socklen_t clientLen = sizeof(clientAddress);
-    do
+
+    std::cout << "Server is listening" << std::endl;
+
+    std::vector<struct pollfd> poll_fds;
+    struct pollfd server_poll_fd;
+    server_poll_fd.fd = serverSocket;
+    server_poll_fd.events = POLLIN;
+    poll_fds.push_back(server_poll_fd);
+    ///*
+    while (true)
     {
-        msgsocket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen);
-        if (msgsocket < 0)
-            return perror("accept stream socket"), EXIT_FAILURE;
-        else
+        int num_fds = poll(&poll_fds[0], poll_fds.size(), 0);
+        if (num_fds < 0){
+            std::cout << "Poll error" << std::endl;
+            continue;
+        }
+
+        for (std::vector<struct pollfd>::iterator it = poll_fds.begin(); it != poll_fds.end();)
         {
-            do
+            // if (std::find(poll_fds.begin(), poll_fds.end(), ))
+            if (it->fd == serverSocket && it->revents & POLLIN)
+            {
+                int new_socket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen);
+                if (new_socket < 0)
+                {
+                    std::cerr << "Accept error" << std::endl;
+                    continue;
+                }
+
+                struct pollfd client_poll_fd;
+                client_poll_fd.fd = new_socket;
+                client_poll_fd.events = POLLIN;
+                poll_fds.push_back(client_poll_fd);
+                ++it;
+            }
+            else if (it->revents && POLLIN)
             {
                 memset(buffer, 0, sizeof(buffer));
-                rval = recv(msgsocket, buffer, sizeof(buffer), 0);
+                rval = recv(it->fd, buffer, sizeof(buffer), 0); // 
                 if (rval == 0)
-                    std::cout << "Ending connections" << std::endl;
+                {
+                    std::cout << "Client disconnected" << std::endl;
+                    close(it->fd);
+                    it = poll_fds.erase(it);
+                }
                 else
                 {
                     std::string request(buffer);
@@ -178,34 +220,32 @@ int main(int argc, char **argv)
                     std::string content = readFile(filePath);
                     if (content.empty())
                     {
-                        std::string new_path;
-                        new_path = "/var/www/Errors/404/" + server->parsRequest404(request);
+                        std::string path1 = "/var/www/Errors/404/";
+                        std::string path2 = "errorPage.html";
+                        std::string new_path = path1 + path2;
                         std::ifstream file(new_path.c_str());
                         if (!file.is_open())
-                        {
-                            std::cerr << "Failed to open file:: " << new_path << std::endl;
-                            return perror(NULL), EXIT_FAILURE;
-                        }
-                        std::stringstream content_v1;
-                        content_v1 << file.rdbuf();
-                        file.close();
-                        content = content_v1.str();         
+                            return perror(NULL), delete server, EXIT_FAILURE;
+
                         std::string contentType = server->getContentType(new_path);
-                        std::string notFound = server->creatHttpResponseForPage404(contentType, content);
-                        send(msgsocket, notFound.c_str(), notFound.length(), 0);
+                        std::string notFound = server->creatHttpResponseForPage404(contentType, file);
+                        send(it->fd, notFound.c_str(), notFound.length(), 0);
                     }
                     else
                     {
                         std::string contentType = server->getContentType(filePath);
                         std::string httpResponse = server->creatHttpResponse(contentType, content);
-                        send(msgsocket, httpResponse.c_str(), httpResponse.length(), 0);
+                        send(it->fd, httpResponse.c_str(), httpResponse.length(), 0);
                     }
+                    ++it;
                 }
-            } while (rval > 0);
-            close(msgsocket);
+            }
+            else{
+                ++it;
+            }
         }
-    } while (true);
-
+    }
     close(serverSocket);
+    delete server;
     return EXIT_SUCCESS;
 }

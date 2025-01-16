@@ -55,3 +55,47 @@ Suggested Search Queries:
 "Streaming large files in C++ web server"
 These queries should provide you with a good amount of information to enhance your web server's capabilities.
 
+    //*/
+   /*
+    do
+    {
+        msgsocket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen);
+        if (msgsocket < 0)
+            return perror("accept stream socket"), delete server,  EXIT_FAILURE;
+        else
+        {
+            do
+            {
+
+                memset(buffer, 0, sizeof(buffer));
+                rval = recv(msgsocket, buffer, sizeof(buffer), 0);
+                if (rval == 0)
+                    std::cout << "Ending connections" << std::endl;
+                else
+                {
+                    std::string request(buffer);
+                    std::string filePath = server->parsRequest(request);
+                    std::string content = readFile(filePath);
+                    if (content.empty())
+                    {
+                        std::string new_path = "/var/www/Errors/404/" + server->parsRequest404(request);
+                        std::ifstream file(new_path.c_str());
+                        if (!file.is_open())
+                            return  perror(NULL), delete server, EXIT_FAILURE;
+
+                        std::string contentType = server->getContentType(new_path);
+                        std::string notFound = server->creatHttpResponseForPage404(contentType, file);
+                        send(msgsocket, notFound.c_str(), notFound.length(), 0);
+                    }
+                    else
+                    {
+                        std::string contentType = server->getContentType(filePath);
+                        std::string httpResponse = server->creatHttpResponse(contentType, content);
+                        send(msgsocket, httpResponse.c_str(), httpResponse.length(), 0);
+                    }
+                }
+            } while (rval > 0);
+            close(msgsocket);
+        }
+    } while (true);
+    */
