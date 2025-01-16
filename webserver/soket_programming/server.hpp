@@ -21,8 +21,12 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <vector>
+#include <sys/epoll.h>
+#include <fcntl.h>
+
 using namespace std;
 #define TRUE 1
+#define MAX_EVENTS 10
 
 class Server
 {

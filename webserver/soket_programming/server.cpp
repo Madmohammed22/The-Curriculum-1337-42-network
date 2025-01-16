@@ -130,6 +130,60 @@ std::string Server::creatHttpResponseForPage404(std::string contentType, std::if
     return httpResponse;
 }
 
+void setnonblocking(int fd)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+    {
+        perror("fcntl");
+        exit(EXIT_FAILURE);
+    }
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+    {
+        perror("fcntl");
+        exit(EXIT_FAILURE);
+    }
+}
+
+int do_use_fd(int fd, Server *server)
+{
+    int rval;
+    char buffer[1024];
+
+    memset(buffer, 0, sizeof(buffer));
+    rval = recv(fd, buffer, sizeof(buffer), 0); 
+    if (rval == 0)
+    {
+        std::cout << "Client disconnected" << std::endl;
+        close(fd);
+    }
+    else
+    {
+        std::string request(buffer);
+        std::string filePath = server->parsRequest(request);
+        std::string content = readFile(filePath);
+        if (content.empty())
+        {
+            std::string path1 = "/var/www/Errors/404/";
+            std::string path2 = "errorPage.html";
+            std::string new_path = path1 + path2;
+            std::ifstream file(new_path.c_str());
+            if (!file.is_open())
+                return perror(NULL), delete server, EXIT_FAILURE;
+
+            std::string contentType = server->getContentType(new_path);
+            std::string notFound = server->creatHttpResponseForPage404(contentType, file);
+            send(fd, notFound.c_str(), notFound.length(), 0);
+        }
+        else
+        {
+            std::string contentType = server->getContentType(filePath);
+            std::string httpResponse = server->creatHttpResponse(contentType, content);
+            send(fd, httpResponse.c_str(), httpResponse.length(), 0);
+        }
+    }
+    return 0;
+}
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -143,7 +197,7 @@ int main(int argc, char **argv)
     int serverSocket = 0;
     serverSocket = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
     if (serverSocket < 0)
-        return perror("opening stream socket."), EXIT_FAILURE;
+        return std::cerr << "opening stream socket." << std::endl, EXIT_FAILURE;
 
     sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
@@ -163,88 +217,51 @@ int main(int argc, char **argv)
     if (listen(serverSocket, 5) < 0)
         return perror("listen stream socket"), delete server, EXIT_FAILURE;
 
-    // int msgsocket = 0;
-    char buffer[1024];
-    size_t rval = 0;
     sockaddr_in clientAddress;
     socklen_t clientLen = sizeof(clientAddress);
 
     std::cout << "Server is listening" << std::endl;
 
-    std::vector<struct pollfd> poll_fds;
-    struct pollfd server_poll_fd;
-    server_poll_fd.fd = serverSocket;
-    server_poll_fd.events = POLLIN;
-    poll_fds.push_back(server_poll_fd);
-    ///*
+    struct epoll_event ev, events[MAX_EVENTS];
+    int listen_sock, conn_sock, nfds, epollfd;
+    listen_sock = serverSocket;
+    epollfd = epoll_create1(0);
+    if (epollfd < 0)
+        return std::cout << "Failed to create epoll file descriptor" << std::endl, EXIT_FAILURE;
+
+    ev.events = EPOLLIN;
+    ev.data.fd = listen_sock;
+    if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
+        return std::cerr << "epoll_ctl: listen_sock" << std::endl, EXIT_FAILURE;
+
     while (true)
     {
-        int num_fds = poll(&poll_fds[0], poll_fds.size(), 0);
-        if (num_fds < 0){
-            std::cout << "Poll error" << std::endl;
-            continue;
-        }
-
-        for (std::vector<struct pollfd>::iterator it = poll_fds.begin(); it != poll_fds.end();)
+        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+        if (nfds == -1)
+            return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
+        int n = 0;
+        for (n = 0; n < nfds; ++n)
         {
-            // if (std::find(poll_fds.begin(), poll_fds.end(), ))
-            if (it->fd == serverSocket && it->revents & POLLIN)
+            if (events[n].data.fd == listen_sock)
             {
-                int new_socket = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen);
-                if (new_socket < 0)
-                {
-                    std::cerr << "Accept error" << std::endl;
-                    continue;
-                }
-
-                struct pollfd client_poll_fd;
-                client_poll_fd.fd = new_socket;
-                client_poll_fd.events = POLLIN;
-                poll_fds.push_back(client_poll_fd);
-                ++it;
+                conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
+                if (conn_sock == -1)
+                    return std::cerr << "accept" << std::endl , EXIT_FAILURE;
+                setnonblocking(conn_sock);
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = conn_sock;
+                if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
+                    return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
             }
-            else if (it->revents && POLLIN)
+            else
             {
-                memset(buffer, 0, sizeof(buffer));
-                rval = recv(it->fd, buffer, sizeof(buffer), 0); // 
-                if (rval == 0)
-                {
-                    std::cout << "Client disconnected" << std::endl;
-                    close(it->fd);
-                    it = poll_fds.erase(it);
-                }
-                else
-                {
-                    std::string request(buffer);
-                    std::string filePath = server->parsRequest(request);
-                    std::string content = readFile(filePath);
-                    if (content.empty())
-                    {
-                        std::string path1 = "/var/www/Errors/404/";
-                        std::string path2 = "errorPage.html";
-                        std::string new_path = path1 + path2;
-                        std::ifstream file(new_path.c_str());
-                        if (!file.is_open())
-                            return perror(NULL), delete server, EXIT_FAILURE;
-
-                        std::string contentType = server->getContentType(new_path);
-                        std::string notFound = server->creatHttpResponseForPage404(contentType, file);
-                        send(it->fd, notFound.c_str(), notFound.length(), 0);
-                    }
-                    else
-                    {
-                        std::string contentType = server->getContentType(filePath);
-                        std::string httpResponse = server->creatHttpResponse(contentType, content);
-                        send(it->fd, httpResponse.c_str(), httpResponse.length(), 0);
-                    }
-                    ++it;
-                }
-            }
-            else{
-                ++it;
+                int r = do_use_fd(events[n].data.fd, server);
+                if (r == -1)
+                    EXIT_FAILURE;
             }
         }
     }
+
     close(serverSocket);
     delete server;
     return EXIT_SUCCESS;
