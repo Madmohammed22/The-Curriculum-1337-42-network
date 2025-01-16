@@ -54,6 +54,23 @@ std::string Server::getContentType(const std::string &path)
 
 std::string readFile(const std::string &path)
 {
+    if (path.find("=") != std::string::npos)
+    {
+        std::string test = path.substr(path.find("=") + 1, path.length());
+        std::cout << "<<<<<[" << test << ">>>>>]" << "\n";
+        test = "/var/www/Resources/" + test;
+        std::ifstream file1(test.c_str());
+        if (!file1.is_open())
+            std::cout << "I was here" << std::endl;
+        else
+        {
+            std::stringstream content;
+            content << file1.rdbuf();
+            file1.close();
+            std::cout << "I was here is able to open " << content.str().length() <<  std::endl;
+        }
+        return "";
+    }
     if (path.empty())
         return "";
     std::string new_path;
@@ -75,7 +92,8 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    std::string filePath = "/index.html";
+    // std::string filePath = "/index.html";
+    std::string filePath = "/upload.html";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -151,7 +169,7 @@ int do_use_fd(int fd, Server *server)
     char buffer[1024];
 
     memset(buffer, 0, sizeof(buffer));
-    rval = recv(fd, buffer, sizeof(buffer), 0); 
+    rval = recv(fd, buffer, sizeof(buffer), 0);
     if (rval == 0)
     {
         std::cout << "Client disconnected" << std::endl;
@@ -161,6 +179,10 @@ int do_use_fd(int fd, Server *server)
     {
         std::string request(buffer);
         std::string filePath = server->parsRequest(request);
+        if (filePath.empty())
+        {
+            std::cout << "I was here\n";
+        }
         std::string content = readFile(filePath);
         if (content.empty())
         {
@@ -246,7 +268,7 @@ int main(int argc, char **argv)
             {
                 conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
                 if (conn_sock == -1)
-                    return std::cerr << "accept" << std::endl , EXIT_FAILURE;
+                    return std::cerr << "accept" << std::endl, EXIT_FAILURE;
                 setnonblocking(conn_sock);
                 ev.events = EPOLLIN | EPOLLET;
                 ev.data.fd = conn_sock;
