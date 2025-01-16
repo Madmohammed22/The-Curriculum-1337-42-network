@@ -75,7 +75,7 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    std::string filePath = "video.mp4";
+    std::string filePath = "/index.html";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
     listen_sock = serverSocket;
     epollfd = epoll_create1(0);
     if (epollfd < 0)
-        return std::cout << "Failed to create epoll file descriptor" << std::endl, EXIT_FAILURE;
+        return std::cerr << "Failed to create epoll file descriptor" << std::endl, EXIT_FAILURE;
 
     ev.events = EPOLLIN;
     ev.data.fd = listen_sock;
