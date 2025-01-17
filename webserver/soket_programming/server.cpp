@@ -52,8 +52,10 @@ std::string Server::getContentType(const std::string &path)
     return "application/octet-stream";
 }
 
-std::string readFile(const std::string &path)
+std::string readFile(const std::string &path, int fd)
 {
+    if (path.empty())
+        return "";
     if (path.find("=") != std::string::npos)
     {
         std::string test = path.substr(path.find("=") + 1, path.length());
@@ -67,12 +69,13 @@ std::string readFile(const std::string &path)
             std::stringstream content;
             content << file1.rdbuf();
             file1.close();
+            for (size_t i = 0; i < content.str().length(); i++){
+                std::cout << content.str().at(i);
+            }
             std::cout << "I was here is able to open " << content.str().length() <<  std::endl;
         }
         return "";
     }
-    if (path.empty())
-        return "";
     std::string new_path;
     new_path = "/var/www/Resources/" + path;
     std::ifstream file(new_path.c_str());
@@ -81,6 +84,25 @@ std::string readFile(const std::string &path)
         std::cerr << "Failed to open file:: " << new_path << std::endl;
         return "";
     }
+    (void)fd;
+    // else{
+
+    //     return new_path;
+    // }
+    // return NULL;
+
+    // int rval;
+    // (void)rval;
+    // char buffer[BUFFER_SIZE];
+
+    // memset(buffer, 0, sizeof(buffer));
+    // rval = read(fd, buffer, sizeof(buffer));
+    // std::string return_chunked = buffer;
+    // return return_chunked;
+    // //-----------------
+    
+    
+    
     std::stringstream content;
     content << file.rdbuf();
     file.close();
@@ -92,8 +114,8 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    // std::string filePath = "/index.html";
-    std::string filePath = "/upload.html";
+    std::string filePath = "/index.html";
+    // std::string filePath = "/upload.html";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -167,9 +189,9 @@ int do_use_fd(int fd, Server *server)
 {
     int rval;
     char buffer[1024];
-
     memset(buffer, 0, sizeof(buffer));
     rval = recv(fd, buffer, sizeof(buffer), 0);
+
     if (rval == 0)
     {
         std::cout << "Client disconnected" << std::endl;
@@ -179,11 +201,8 @@ int do_use_fd(int fd, Server *server)
     {
         std::string request(buffer);
         std::string filePath = server->parsRequest(request);
-        if (filePath.empty())
-        {
-            std::cout << "I was here\n";
-        }
-        std::string content = readFile(filePath);
+        std::string content = readFile(filePath, fd);
+        
         if (content.empty())
         {
             std::string path1 = "/var/www/Errors/404/";
@@ -201,6 +220,12 @@ int do_use_fd(int fd, Server *server)
         {
             std::string contentType = server->getContentType(filePath);
             std::string httpResponse = server->creatHttpResponse(contentType, content);
+            // std::cout << "---->>>>>>>" <<  httpResponse << std::endl;
+
+
+
+
+            
             send(fd, httpResponse.c_str(), httpResponse.length(), 0);
         }
     }
@@ -258,6 +283,7 @@ int main(int argc, char **argv)
 
     while (true)
     {
+
         nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
         if (nfds == -1)
             return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
