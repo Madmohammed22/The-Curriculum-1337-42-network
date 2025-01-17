@@ -17,7 +17,6 @@
 #include <stack>
 #include <poll.h>
 #include <netdb.h>
-
 #include <arpa/inet.h>
 #include <poll.h>
 #include <vector>

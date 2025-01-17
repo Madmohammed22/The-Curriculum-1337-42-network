@@ -114,8 +114,8 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    std::string filePath = "/index.html";
-    // std::string filePath = "/upload.html";
+    // std::string filePath = "/index.html";
+    std::string filePath = "/upload.html";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -204,7 +204,7 @@ int do_use_fd(int fd, Server *server)
         std::string content = readFile(filePath, fd);
         
         if (content.empty())
-        {
+        {   
             std::string path1 = "/var/www/Errors/404/";
             std::string path2 = "errorPage.html";
             std::string new_path = path1 + path2;
@@ -224,10 +224,6 @@ int do_use_fd(int fd, Server *server)
             // constract the httpresponse without the content
             // read a pace of the file content ???????? (function with static variable > set the static variable to null if the eof has
             // occured so 
-
-
-
-            
             send(fd, httpResponse.c_str(), httpResponse.length(), 0);
         }
     }
@@ -244,7 +240,7 @@ int main(int argc, char **argv)
 
     Server *server = new Server();
     int serverSocket = 0;
-    serverSocket = socket(AF_INET, SOCK_STREAM, getprotobyname("tcp")->p_proto);
+    serverSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, getprotobyname("tcp")->p_proto);
     if (serverSocket < 0)
         return std::cerr << "opening stream socket." << std::endl, EXIT_FAILURE;
 
