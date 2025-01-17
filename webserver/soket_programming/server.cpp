@@ -218,10 +218,12 @@ int do_use_fd(int fd, Server *server)
         }
         else
         {
-            std::string contentType = server->getContentType(filePath);
+            std::string contentType = server->getContentType(filePath); 
             std::string httpResponse = server->creatHttpResponse(contentType, content);
             // std::cout << "---->>>>>>>" <<  httpResponse << std::endl;
-
+            // constract the httpresponse without the content
+            // read a pace of the file content ???????? (function with static variable > set the static variable to null if the eof has
+            // occured so 
 
 
 
