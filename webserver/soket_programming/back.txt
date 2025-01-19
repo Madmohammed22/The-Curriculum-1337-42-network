@@ -181,3 +181,84 @@ These queries should provide you with a good amount of information to enhance yo
         }
     }
     */
+
+    //----------
+
+
+        if (path.find("=") != std::string::npos)
+    {
+        std::string test = path.substr(path.find("=") + 1, path.length());
+        std::cout << "<<<<<[" << test << ">>>>>]" << "\n";
+        test = "/var/www/Resources/" + test;
+        std::ifstream file1(test.c_str());
+        if (!file1.is_open())
+            std::cout << "I was here" << std::endl;
+        else
+        {
+            std::stringstream content;
+            content << file1.rdbuf();
+            file1.close();
+            for (size_t i = 0; i < content.str().length(); i++)
+            {
+                std::cout << content.str().at(i);
+            }
+            std::cout << "I was here is able to open " << content.str().length() << std::endl;
+        }
+        return "";
+    }
+
+
+//-----------
+
+/*
+std::string readFile(const std::string &path, int fd)
+{
+    (void)fd;
+    if (path.empty())
+        return "";
+    // int fds = open(path.c_str(), O_RDONLY, 0777);
+    // if (fds < 0){
+    //     std::cout << "I was here motherfucker\n";
+    //     return "";
+    // }
+    // size_t chars_read = read(fds, buffer, sizeof(buffer));
+    // if (chars_read == 0){
+    //     std::cout << "I got EOF\n";
+    //     return "";
+    // }
+
+    // buffer[BUFFER_SIZE] = '\0';
+    // std::string r = buffer;
+    // return r;
+
+
+    // char buffer[BUFFER_SIZE + 1];
+    std::ifstream infile(path.c_str(), std::ios::binary);
+    std::stringstream content;
+    content << infile.rdbuf();
+    std::string r = content.str();
+    return r;
+    // // Read file
+    // infile.read(buffer, sizeof(buffer));
+    // if (!infile.eof())
+    // {
+    //     buffer[BUFFER_SIZE] = '\0';
+    //     std::string r = buffer;
+    //     close(fd);
+    //     return r;
+    // }
+
+    // chars_read = infile.gcount();
+    // if (chars_read > 0)
+    // {
+    //     std::cout << "I was here\n";
+    //     buffer[BUFFER_SIZE] = '\0';
+    //     std::string r2 = buffer;
+    //     return r2;
+    // }
+    // std::cout << "I was here 2\n";
+    // return "";
+}
+
+// how I coud use Chunked transfer encoding instead of reading the whole file at once
+*/

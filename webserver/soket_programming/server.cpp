@@ -52,43 +52,30 @@ std::string Server::getContentType(const std::string &path)
     return "application/octet-stream";
 }
 
-std::string readFile(const std::string &path, int fd)
+std::string readFile(const std::string &path)
 {
+    std::stringstream content;
     if (path.empty())
         return "";
-    if (path.find("=") != std::string::npos)
-    {
-        std::string test = path.substr(path.find("=") + 1, path.length());
-        std::cout << "<<<<<[" << test << ">>>>>]" << "\n";
-        test = "/var/www/Resources/" + test;
-        std::ifstream file1(test.c_str());
-        if (!file1.is_open())
-            std::cout << "I was here" << std::endl;
-        else
-        {
-            std::stringstream content;
-            content << file1.rdbuf();
-            file1.close();
-            for (size_t i = 0; i < content.str().length(); i++)
-            {
-                std::cout << content.str().at(i);
-            }
-            std::cout << "I was here is able to open " << content.str().length() << std::endl;
-        }
+
+    std::ifstream infile(path.c_str(), std::ios::binary);
+    if (!infile.is_open())
         return "";
+
+    char buffer[CHUNK_SIZE];
+    while (infile.read(buffer, CHUNK_SIZE))
+    {
+        content.write(buffer, CHUNK_SIZE);
     }
-    std::ifstream file(path.c_str(), std::ios::binary);
-    char buffer[BUFFER_SIZE + 1];
-    memset(buffer, 0, sizeof(buffer));
-    // recv(fd, buffer, sizeof(buffer), 0);
-    file.read(buffer, sizeof(buffer));
-    std::string chuncked = buffer;
-    if (file.eof()){
-        return chuncked;
-        (void)fd;
-        // close(fd);
+
+    size_t remaining = infile.gcount();
+    if (remaining > 0)
+    {
+        content.write(buffer, remaining);
     }
-    return chuncked;
+
+    std::string r = content.str();
+    return r;
 }
 
 std::string Server::parsRequest(std::string request)
@@ -96,8 +83,8 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    std::string filePath = "/index.html";
-    // std::string filePath = "/upload.html";
+    // std::string filePath = "/index.html";
+    std::string filePath = "/upload.html";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -171,7 +158,6 @@ bool CanBeOpen(std::string &filePath)
 {
     std::string new_path;
     new_path = "/var/www/Resources/" + filePath;
-
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
     {
@@ -182,46 +168,84 @@ bool CanBeOpen(std::string &filePath)
     return true;
 }
 
-int do_use_fd(int fd, Server *server)
-{
-    int rval;
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    rval = recv(fd, buffer, sizeof(buffer), 0);
 
-    if (rval == 0)
+int uploadFiles(std::string filePath)
+{
+    std::string new_path = filePath.substr(filePath.find("=") + 1, filePath.length());
+    if (CanBeOpen(new_path))
     {
-        std::cout << "Client disconnected..." << std::endl;
-        // close(fd);
+        std::ifstream file1(new_path.c_str(), std::ios::binary);
+        std::cout << "--<" << new_path.c_str() << ">---\n";
+        if (!file1.is_open())
+        {
+            std::cerr << "Failed to open input file." << std::endl;
+            return -1;
+        }
+
+        std::ofstream output("output.txt", std::ios::binary);
+        if (!output.is_open())
+        {
+            std::cerr << "Failed to open output file." << std::endl;
+            file1.close();
+            return -1;
+        }
+
+        char buffer[CHUNK_SIZE];
+        while (file1.read(buffer, CHUNK_SIZE))
+        {
+            std::cout << "buffer" << std::endl;
+            output.write(buffer, CHUNK_SIZE);
+        }
+
+        size_t remaining = file1.gcount();
+        if (remaining > 0)
+        {
+            output.write(buffer, remaining);
+        }
+        file1.close();
+        output.close();
     }
     else
     {
-        std::string request(buffer);
-        std::string filePath = server->parsRequest(request);
-        std::string content = "";
-        if (CanBeOpen(filePath) == true)
-        {
-            content = readFile(filePath, fd);
-        
-            std::string contentType = server->getContentType(filePath);
-            std::string httpResponse = server->creatHttpResponse(contentType, content);
-            std::cout << "-->[" << content << "]<---" << std::endl;
-            send(fd, content.c_str(), content.length(), O_NONBLOCK);
-            // send(fd, httpResponse.c_str(), httpResponse.length(), 0);
-        }
-        else
-        {
-            std::string path1 = "/var/www/Errors/404/";
-            std::string path2 = "errorPage.html";
-            std::string new_path = path1 + path2;
-            std::ifstream file(new_path.c_str());
-            if (!file.is_open())
-                return perror(NULL), delete server, EXIT_FAILURE;
+        std::cerr << "Failed to open input file." << std::endl;
+        return -1;
+    }
 
-            std::string contentType = server->getContentType(new_path);
-            std::string notFound = server->creatHttpResponseForPage404(contentType, file);
-            send(fd, notFound.c_str(), notFound.length(), 0);
-        }
+    return 0;
+}
+
+int do_use_fd(int fd, Server *server)
+{
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    recv(fd, buffer, sizeof(buffer), 0);
+
+    std::string request(buffer);
+    std::string filePath = server->parsRequest(request);
+    std::string content = "";
+    if (filePath.find("=") != std::string::npos)
+    {
+        return uploadFiles(filePath);
+    }
+
+    if (CanBeOpen(filePath) == true)
+    {
+        content = readFile(filePath);
+        std::string contentType = server->getContentType(filePath);
+        std::string httpResponse = server->creatHttpResponse(contentType, content);
+        send(fd, httpResponse.c_str(), httpResponse.length(), 0);
+    }
+    else
+    {
+        std::string path1 = "/var/www/Errors/404/";
+        std::string path2 = "errorPage.html";
+        std::string new_path = path1 + path2;
+        std::ifstream file(new_path.c_str());
+        if (!file.is_open())
+            return perror(NULL), delete server, EXIT_FAILURE;
+        std::string contentType = server->getContentType(new_path);
+        std::string notFound = server->creatHttpResponseForPage404(contentType, file);
+        send(fd, notFound.c_str(), notFound.length(), 0);
     }
     return 0;
 }
