@@ -69,44 +69,26 @@ std::string readFile(const std::string &path, int fd)
             std::stringstream content;
             content << file1.rdbuf();
             file1.close();
-            for (size_t i = 0; i < content.str().length(); i++){
+            for (size_t i = 0; i < content.str().length(); i++)
+            {
                 std::cout << content.str().at(i);
             }
-            std::cout << "I was here is able to open " << content.str().length() <<  std::endl;
+            std::cout << "I was here is able to open " << content.str().length() << std::endl;
         }
         return "";
     }
-    std::string new_path;
-    new_path = "/var/www/Resources/" + path;
-    std::ifstream file(new_path.c_str());
-    if (!file.is_open())
-    {
-        std::cerr << "Failed to open file:: " << new_path << std::endl;
-        return "";
+    std::ifstream file(path.c_str(), std::ios::binary);
+    char buffer[BUFFER_SIZE + 1];
+    memset(buffer, 0, sizeof(buffer));
+    // recv(fd, buffer, sizeof(buffer), 0);
+    file.read(buffer, sizeof(buffer));
+    std::string chuncked = buffer;
+    if (file.eof()){
+        return chuncked;
+        (void)fd;
+        // close(fd);
     }
-    (void)fd;
-    // else{
-
-    //     return new_path;
-    // }
-    // return NULL;
-
-    // int rval;
-    // (void)rval;
-    // char buffer[BUFFER_SIZE];
-
-    // memset(buffer, 0, sizeof(buffer));
-    // rval = read(fd, buffer, sizeof(buffer));
-    // std::string return_chunked = buffer;
-    // return return_chunked;
-    // //-----------------
-    
-    
-    
-    std::stringstream content;
-    content << file.rdbuf();
-    file.close();
-    return content.str();
+    return chuncked;
 }
 
 std::string Server::parsRequest(std::string request)
@@ -114,8 +96,8 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    // std::string filePath = "/index.html";
-    std::string filePath = "/upload.html";
+    std::string filePath = "/index.html";
+    // std::string filePath = "/upload.html";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -185,6 +167,21 @@ void setnonblocking(int fd)
     }
 }
 
+bool CanBeOpen(std::string &filePath)
+{
+    std::string new_path;
+    new_path = "/var/www/Resources/" + filePath;
+
+    std::ifstream file(new_path.c_str());
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file:: " << new_path << std::endl;
+        return false;
+    }
+    filePath = new_path;
+    return true;
+}
+
 int do_use_fd(int fd, Server *server)
 {
     int rval;
@@ -194,17 +191,26 @@ int do_use_fd(int fd, Server *server)
 
     if (rval == 0)
     {
-        std::cout << "Client disconnected" << std::endl;
-        close(fd);
+        std::cout << "Client disconnected..." << std::endl;
+        // close(fd);
     }
     else
     {
         std::string request(buffer);
         std::string filePath = server->parsRequest(request);
-        std::string content = readFile(filePath, fd);
+        std::string content = "";
+        if (CanBeOpen(filePath) == true)
+        {
+            content = readFile(filePath, fd);
         
-        if (content.empty())
-        {   
+            std::string contentType = server->getContentType(filePath);
+            std::string httpResponse = server->creatHttpResponse(contentType, content);
+            std::cout << "-->[" << content << "]<---" << std::endl;
+            send(fd, content.c_str(), content.length(), O_NONBLOCK);
+            // send(fd, httpResponse.c_str(), httpResponse.length(), 0);
+        }
+        else
+        {
             std::string path1 = "/var/www/Errors/404/";
             std::string path2 = "errorPage.html";
             std::string new_path = path1 + path2;
@@ -215,16 +221,6 @@ int do_use_fd(int fd, Server *server)
             std::string contentType = server->getContentType(new_path);
             std::string notFound = server->creatHttpResponseForPage404(contentType, file);
             send(fd, notFound.c_str(), notFound.length(), 0);
-        }
-        else
-        {
-            std::string contentType = server->getContentType(filePath); 
-            std::string httpResponse = server->creatHttpResponse(contentType, content);
-            // std::cout << "---->>>>>>>" <<  httpResponse << std::endl;
-            // constract the httpresponse without the content
-            // read a pace of the file content ???????? (function with static variable > set the static variable to null if the eof has
-            // occured so 
-            send(fd, httpResponse.c_str(), httpResponse.length(), 0);
         }
     }
     return 0;

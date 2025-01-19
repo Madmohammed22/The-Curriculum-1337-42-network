@@ -26,7 +26,7 @@
 using namespace std;
 #define TRUE 1
 #define MAX_EVENTS 10
-#define BUFFER_SIZE 20
+#define BUFFER_SIZE 1000
 
 class Server
 {
