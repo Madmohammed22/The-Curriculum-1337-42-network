@@ -26,7 +26,7 @@
 using namespace std;
 #define TRUE 1
 #define MAX_EVENTS 10
-#define CHUNK_SIZE 1024
+#define CHUNK_SIZE 100
 
 class Server
 {
@@ -41,7 +41,7 @@ public:
     std::string parsRequest404(std::string request);
     std::string getContentType(const std::string &path);
     std::string creatHttpResponse(std::string contentType, std::string content);
-    std::string creatHttpResponseForPage404(std::string contentType, std::ifstream &file);
+    std::string creatHttpResponseForPage404(std::string contentType, std::ifstream &file, std::string& s_content);
     
 };
 

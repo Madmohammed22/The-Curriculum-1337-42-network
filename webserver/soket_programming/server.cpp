@@ -17,7 +17,7 @@ Server &Server::operator=(const Server &Init)
 }
 Server::~Server()
 {
-    std::cout << "[Server] Distructor is called" << std::endl;
+    std::cout << "[Server] Destructor is called" << std::endl;
 }
 
 std::string Server::getContentType(const std::string &path)
@@ -83,8 +83,8 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    // std::string filePath = "/index.html";
-    std::string filePath = "/upload.html";
+    std::string filePath = "/index.html";
+    // std::string filePath = "/upload.html";
     if (request.find("GET / ") == std::string::npos)
     {
         size_t startPos = request.find("GET /") + 5;
@@ -112,14 +112,12 @@ std::string Server::creatHttpResponse(std::string contentType, std::string conte
     std::string httpResponse = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: " +
                                contentType + "\r\n"
-                                             "Content-Length: " +
-                               str + "\r\n"
-                                     "\r\n" +
-                               content;
+                                             "Transfer-Encoding: chunked\r\n"
+                                             "\r\n";
     return httpResponse;
 }
 
-std::string Server::creatHttpResponseForPage404(std::string contentType, std::ifstream &file)
+std::string Server::creatHttpResponseForPage404(std::string contentType, std::ifstream &file, std::string &s_content)
 {
     std::stringstream content_v1;
     content_v1 << file.rdbuf();
@@ -132,10 +130,9 @@ std::string Server::creatHttpResponseForPage404(std::string contentType, std::if
     std::string httpResponse = "HTTP/1.1 404 Not Found\r\n"
                                "Content-Type: " +
                                contentType + "\r\n"
-                                             "Content-Length: " +
-                               str + "\r\n"
-                                     "\r\n" +
-                               content;
+                                             "Transfer-Encoding: chunked\r\n"
+                                             "\r\n";
+    s_content = content;
     return httpResponse;
 }
 
@@ -168,19 +165,14 @@ bool CanBeOpen(std::string &filePath)
     return true;
 }
 
-
 int uploadFiles(std::string filePath)
 {
     std::string new_path = filePath.substr(filePath.find("=") + 1, filePath.length());
     if (CanBeOpen(new_path))
     {
         std::ifstream file1(new_path.c_str(), std::ios::binary);
-        std::cout << "--<" << new_path.c_str() << ">---\n";
         if (!file1.is_open())
-        {
-            std::cerr << "Failed to open input file." << std::endl;
-            return -1;
-        }
+            return std::cerr << "Failed to open input file." << std::endl, -1;
 
         std::ofstream output("output.txt", std::ios::binary);
         if (!output.is_open())
@@ -206,11 +198,7 @@ int uploadFiles(std::string filePath)
         output.close();
     }
     else
-    {
-        std::cerr << "Failed to open input file." << std::endl;
-        return -1;
-    }
-
+        return std::cerr << "Failed to open input file." << std::endl, -1;
     return 0;
 }
 
@@ -224,9 +212,7 @@ int do_use_fd(int fd, Server *server)
     std::string filePath = server->parsRequest(request);
     std::string content = "";
     if (filePath.find("=") != std::string::npos)
-    {
         return uploadFiles(filePath);
-    }
 
     if (CanBeOpen(filePath) == true)
     {
@@ -234,6 +220,25 @@ int do_use_fd(int fd, Server *server)
         std::string contentType = server->getContentType(filePath);
         std::string httpResponse = server->creatHttpResponse(contentType, content);
         send(fd, httpResponse.c_str(), httpResponse.length(), 0);
+
+        // Send the content in chunks..
+        size_t pos = 0;
+        while (pos < content.size())
+        {
+            size_t chunkSize = (CHUNK_SIZE < (content.size() - pos)) ? CHUNK_SIZE : (content.size() - pos);
+            std::ostringstream chunkStream;
+            chunkStream << std::hex << chunkSize << "\r\n";
+            chunkStream.write(content.data() + pos, chunkSize);
+            chunkStream << "\r\n";
+            std::string chunk = chunkStream.str();
+            send(fd, chunk.c_str(), chunk.size(), 0);
+            return 0;
+            pos += chunkSize;
+        }
+
+        // Send the final chunk ....
+        std::string finalChunk = "0\r\n\r\n";
+        send(fd, finalChunk.c_str(), finalChunk.size(), 0);
     }
     else
     {
@@ -241,14 +246,35 @@ int do_use_fd(int fd, Server *server)
         std::string path2 = "errorPage.html";
         std::string new_path = path1 + path2;
         std::ifstream file(new_path.c_str());
+        std::string content;
         if (!file.is_open())
             return perror(NULL), delete server, EXIT_FAILURE;
         std::string contentType = server->getContentType(new_path);
-        std::string notFound = server->creatHttpResponseForPage404(contentType, file);
+        std::string notFound = server->creatHttpResponseForPage404(contentType, file, content);
         send(fd, notFound.c_str(), notFound.length(), 0);
+
+        size_t pos = 0;
+        while (pos < content.size())
+        {
+            size_t chunkSize = (CHUNK_SIZE < (content.size() - pos)) ? CHUNK_SIZE : (content.size() - pos);
+            std::ostringstream chunkStream;
+            chunkStream << std::hex << chunkSize << "\r\n";
+            chunkStream.write(content.data() + pos, chunkSize);
+            chunkStream << "\r\n";
+            std::string chunk = chunkStream.str();
+            send(fd, chunk.c_str(), chunk.size(), 0);
+            pos += chunkSize;
+        }
+
+        // Send the final chunk
+        std::string finalChunk = "0\r\n\r\n";
+        send(fd, finalChunk.c_str(), finalChunk.size(), 0);
+        file.close();
     }
+
     return 0;
 }
+
 int main(int argc, char **argv)
 {
     if (argc < 2)
@@ -299,6 +325,8 @@ int main(int argc, char **argv)
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
         return std::cerr << "epoll_ctl: listen_sock" << std::endl, EXIT_FAILURE;
 
+    std::string httpResponse = "HTTP/1.1 200 OK\r\nDate: Mon, 20 Jan 2025 12:00:00 GMT\r\nServer: Apache/2.4.41 (Ubuntu)\r\nContent-Type: text/html\r\nContent-Length: 1234\r\n\r\n<html>\r\n<head><title>Example Page</title></head>\r\n<body>\r\n<h1>Welcome to the Example Page</h1>\r\n</body>\r\n</html>";
+
     while (true)
     {
 
@@ -306,24 +334,46 @@ int main(int argc, char **argv)
         if (nfds == -1)
             return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
         int n = 0;
-        for (n = 0; n < nfds; ++n)
+        int d = 0;
+        for (n = 0; n < nfds; n++)
         {
             if (events[n].data.fd == listen_sock)
             {
+                std::cout << "connection ...\n";
                 conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
                 if (conn_sock == -1)
                     return std::cerr << "accept" << std::endl, EXIT_FAILURE;
                 setnonblocking(conn_sock);
-                ev.events = EPOLLIN | EPOLLET;
+                ev.events = EPOLLIN | EPOLLOUT;
                 ev.data.fd = conn_sock;
                 if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                     return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
             }
-            else
+            else if (events[n].events & EPOLLIN)
             {
-                int r = do_use_fd(events[n].data.fd, server);
-                if (r == -1)
-                    EXIT_FAILURE;
+                std::cout << "+++++++++++++++++block request ....." << endl;
+                char buffer[CHUNK_SIZE];
+                int len = recv(events[n].data.fd, buffer, 100, 0);
+                buffer[len] = '\0';
+                if (len != 100) 
+                {
+                    epoll_event ev1;
+                    ev1.events = EPOLLOUT;
+                    ev1.data.fd = events[n].data.fd;
+                    if (epoll_ctl(epollfd, EPOLL_CTL_MOD, events[n].data.fd, &ev1) == -1)
+                        return std::cerr << "epoll_ctl: conn_sock11" << std::endl, EXIT_FAILURE;
+                }
+                std::cout << buffer << std::endl;
+            }
+            else if (events[n].events & EPOLLOUT)
+            {
+                std::cout << "+++++++++++++++++block respond ....." << endl;
+
+                send(events[n].data.fd, httpResponse.c_str(), httpResponse.size(), 0);
+                close(events[n].data.fd);
+                // int r = do_use_fd(events[n].data.fd, server);
+                // if (r == -1)
+                //     EXIT_FAILURE;
             }
         }
     }
