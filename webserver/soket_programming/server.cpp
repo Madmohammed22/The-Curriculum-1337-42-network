@@ -2,6 +2,7 @@
 
 Server::Server()
 {
+    // std::cout << "[Server] Constructor is called" << std::endl;
 }
 
 Server::Server(const Server &Init)
@@ -313,33 +314,53 @@ int main(int argc, char **argv)
 
     std::cout << "Server is listening" << std::endl;
 
-    struct epoll_event ev, events[MAX_EVENTS];
-    int listen_sock, conn_sock, nfds, epollfd;
+    // struct epoll_event ev, events[MAX_EVENTS];
+
+    //-------------
+    int listen_sock, epollfd;
+    int conn_sock;
+    // int nfds;
     listen_sock = serverSocket;
     epollfd = epoll_create1(0);
     if (epollfd < 0)
         return std::cerr << "Failed to create epoll file descriptor" << std::endl, EXIT_FAILURE;
-
-    ev.events = EPOLLIN;
+    //-----------------
+    // int flags = fcntl(listen_sock, F_GETFL, 0);
+    // if (flags == -1)
+    // {
+    //     perror("fcntl");
+    //     exit(EXIT_FAILURE);
+    // }
+    // if (fcntl(listen_sock, F_SETFL, flags | O_NONBLOCK) == -1)
+    // {
+    //     perror("fcntl");
+    //     exit(EXIT_FAILURE);
+    // }
+    //-------------
+    struct epoll_event ev;
+    ev.events = EPOLLIN | EPOLLET; // EPOLLIN for read, EPOLLET for edge-triggered
     ev.data.fd = listen_sock;
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
-        return std::cerr << "epoll_ctl: listen_sock" << std::endl, EXIT_FAILURE;
-
-    std::string httpResponse = "HTTP/1.1 200 OK\r\nDate: Mon, 20 Jan 2025 12:00:00 GMT\r\nServer: Apache/2.4.41 (Ubuntu)\r\nContent-Type: text/html\r\nContent-Length: 1234\r\n\r\n<html>\r\n<head><title>Example Page</title></head>\r\n<body>\r\n<h1>Welcome to the Example Page</h1>\r\n</body>\r\n</html>";
-
+    {
+        perror("epoll_ctl");
+        exit(EXIT_FAILURE);
+    }
+    //-------------
+    char buffer[CHUNK_SIZE];
     while (true)
     {
-
-        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+        struct epoll_event events[MAX_EVENTS];
+        int nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
         if (nfds == -1)
-            return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
-        int n = 0;
-        int d = 0;
-        for (n = 0; n < nfds; n++)
         {
-            if (events[n].data.fd == listen_sock)
+            perror("epoll_wait");
+            exit(EXIT_FAILURE);
+        }
+
+        for (int i = 0; i < nfds; ++i)
+        {
+            if (events[i].data.fd == listen_sock)
             {
-                std::cout << "connection ...\n";
                 conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
                 if (conn_sock == -1)
                     return std::cerr << "accept" << std::endl, EXIT_FAILURE;
@@ -349,31 +370,31 @@ int main(int argc, char **argv)
                 if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
                     return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
             }
-            else if (events[n].events & EPOLLIN)
+            else if (events[i].events & EPOLLIN)
             {
-                std::cout << "+++++++++++++++++block request ....." << endl;
-                char buffer[CHUNK_SIZE];
-                int len = recv(events[n].data.fd, buffer, 100, 0);
-                buffer[len] = '\0';
-                if (len != 100) 
+                double n = 0;
+                std::cout << "// Handle read events " << n++ << "\n";
+                // ssize_t result = read(events[i].data.fd, buffer, CHUNK_SIZE);
+                ssize_t result = recv(events[i].data.fd, buffer, CHUNK_SIZE, 0);
+                if (result == -1 && errno != EAGAIN)
                 {
-                    epoll_event ev1;
-                    ev1.events = EPOLLOUT;
-                    ev1.data.fd = events[n].data.fd;
-                    if (epoll_ctl(epollfd, EPOLL_CTL_MOD, events[n].data.fd, &ev1) == -1)
-                        return std::cerr << "epoll_ctl: conn_sock11" << std::endl, EXIT_FAILURE;
+                    std::cout << "I was here\n";
+                    perror("read");
+                    close(events[i].data.fd);
                 }
-                std::cout << buffer << std::endl;
+                // std::cout << "[" << buffer << "]" << "\n";
             }
-            else if (events[n].events & EPOLLOUT)
+            else if (events[i].events & EPOLLOUT)
             {
-                std::cout << "+++++++++++++++++block respond ....." << endl;
-
-                send(events[n].data.fd, httpResponse.c_str(), httpResponse.size(), 0);
-                close(events[n].data.fd);
-                // int r = do_use_fd(events[n].data.fd, server);
-                // if (r == -1)
-                //     EXIT_FAILURE;
+                double n = 0;
+                std::cout << "// Handle write events " << n++ << "\n";
+                ssize_t result = write(events[i].data.fd, buffer, CHUNK_SIZE);
+                if (result == -1 && errno != EAGAIN)
+                {
+                    perror("write");
+                    close(events[i].data.fd);
+                }
+                // std::cout << "[" << buffer << "]" << "\n";
             }
         }
     }

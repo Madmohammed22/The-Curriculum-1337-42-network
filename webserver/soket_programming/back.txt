@@ -262,3 +262,67 @@ std::string readFile(const std::string &path, int fd)
 
 // how I coud use Chunked transfer encoding instead of reading the whole file at once
 */
+
+//--------------------
+
+
+
+    //-------------------
+
+    // ev.events = EPOLLIN;
+    // ev.data.fd = listen_sock;
+    // if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
+    //     return std::cerr << "epoll_ctl: listen_sock" << std::endl, EXIT_FAILURE;
+
+    // std::string httpResponse = "HTTP/1.1 200 OK\r\nDate: Mon, 20 Jan 2025 12:00:00 GMT\r\nServer: Apache/2.4.41 (Ubuntu)\r\nContent-Type: text/html\r\nContent-Length: 1234\r\n\r\n<html>\r\n<head><title>Example Page</title></head>\r\n<body>\r\n<h1>Welcome to the Example Page</h1>\r\n</body>\r\n</html>";
+
+    // while (true)
+    // {
+
+    //     nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+    //     if (nfds == -1)
+    //         return std::cerr << "epoll_wait" << std::endl, EXIT_FAILURE;
+    //     int n = 0;
+    //     int d = 0;
+    //     for (n = 0; n < nfds; n++)
+    //     {
+    //         if (events[n].data.fd == listen_sock)
+    //         {
+    //             std::cout << "connection ...\n";
+    //             conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
+    //             if (conn_sock == -1)
+    //                 return std::cerr << "accept" << std::endl, EXIT_FAILURE;
+    //             setnonblocking(conn_sock);
+    //             ev.events = EPOLLIN | EPOLLOUT;
+    //             ev.data.fd = conn_sock;
+    //             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
+    //                 return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
+    //         }
+    //         else if (events[n].events & EPOLLIN)
+    //         {
+    //             std::cout << "+++++++++++++++++block request ....." << endl;
+    //             char buffer[CHUNK_SIZE];
+    //             int len = recv(events[n].data.fd, buffer, CHUNK_SIZE, 0);
+    //             buffer[len] = '\0';
+    //             if (len != CHUNK_SIZE)
+    //             {
+    //                 epoll_event ev1;
+    //                 ev1.events = EPOLLOUT;
+    //                 ev1.data.fd = events[n].data.fd;
+    //                 if (epoll_ctl(epollfd, EPOLL_CTL_MOD, events[n].data.fd, &ev1) == -1)
+    //                     return std::cerr << "epoll_ctl: conn_sock11" << std::endl, EXIT_FAILURE;
+    //             }
+    //             std::cout << buffer << std::endl;
+    //         }
+    //         else if (events[n].events & EPOLLOUT)
+    //         {
+    //             std::cout << "+++++++++++++++++block respond ....." << endl;
+
+    //             send(events[n].data.fd, httpResponse.c_str(), httpResponse.size(), 0);
+    //             close(events[n].data.fd);
+    //             // int r = do_use_fd(events[n].data.fd, server);
+    //             // if (r == -1)
+    //             //     EXIT_FAILURE;
+    //         }
+    //     }
+    // }

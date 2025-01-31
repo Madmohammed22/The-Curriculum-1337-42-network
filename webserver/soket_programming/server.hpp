@@ -25,8 +25,8 @@
 
 using namespace std;
 #define TRUE 1
-#define MAX_EVENTS 10
-#define CHUNK_SIZE 100
+#define MAX_EVENTS 2
+#define CHUNK_SIZE 10
 
 class Server
 {
