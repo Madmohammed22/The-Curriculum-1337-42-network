@@ -16,6 +16,7 @@ Server &Server::operator=(const Server &Init)
         return *this;
     return *this;
 }
+
 Server::~Server()
 {
     std::cout << "[Server] Destructor is called" << std::endl;
@@ -86,11 +87,15 @@ std::string Server::parsRequest(std::string request)
     std::cout << "Received request: " << request << std::endl;
     std::string filePath = "/index.html";
     // std::string filePath = "/upload.html";
-    if (request.find("GET / ") == std::string::npos)
+    size_t startPos = request.find("GET /");
+    if (startPos != std::string::npos)
     {
-        size_t startPos = request.find("GET /") + 5;
-        size_t endPos = request.find(" HTTP/");
-        filePath = request.substr(startPos, endPos - startPos);
+        startPos += 5;
+        size_t endPos = request.find(" HTTP/", startPos);
+        if (endPos != std::string::npos)
+        {
+            filePath = request.substr(startPos, endPos - startPos);
+        }
     }
     return filePath;
 }
@@ -203,43 +208,31 @@ int uploadFiles(std::string filePath)
     return 0;
 }
 
-int do_use_fd(int fd, Server *server)
+int do_use_fd(int fd, Server *server, std::string request)
 {
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    recv(fd, buffer, sizeof(buffer), 0);
-
-    std::string request(buffer);
     std::string filePath = server->parsRequest(request);
     std::string content = "";
-    if (filePath.find("=") != std::string::npos)
-        return uploadFiles(filePath);
-
     if (CanBeOpen(filePath) == true)
     {
         content = readFile(filePath);
         std::string contentType = server->getContentType(filePath);
         std::string httpResponse = server->creatHttpResponse(contentType, content);
-        send(fd, httpResponse.c_str(), httpResponse.length(), 0);
+        send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL);
 
-        // Send the content in chunks..
         size_t pos = 0;
         while (pos < content.size())
-        {
+        {  
             size_t chunkSize = (CHUNK_SIZE < (content.size() - pos)) ? CHUNK_SIZE : (content.size() - pos);
             std::ostringstream chunkStream;
             chunkStream << std::hex << chunkSize << "\r\n";
             chunkStream.write(content.data() + pos, chunkSize);
             chunkStream << "\r\n";
             std::string chunk = chunkStream.str();
-            send(fd, chunk.c_str(), chunk.size(), 0);
-            return 0;
+            send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
             pos += chunkSize;
         }
-
-        // Send the final chunk ....
         std::string finalChunk = "0\r\n\r\n";
-        send(fd, finalChunk.c_str(), finalChunk.size(), 0);
+        send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
     }
     else
     {
@@ -252,7 +245,7 @@ int do_use_fd(int fd, Server *server)
             return perror(NULL), delete server, EXIT_FAILURE;
         std::string contentType = server->getContentType(new_path);
         std::string notFound = server->creatHttpResponseForPage404(contentType, file, content);
-        send(fd, notFound.c_str(), notFound.length(), 0);
+        send(fd, notFound.c_str(), notFound.length(), MSG_NOSIGNAL);
 
         size_t pos = 0;
         while (pos < content.size())
@@ -263,29 +256,20 @@ int do_use_fd(int fd, Server *server)
             chunkStream.write(content.data() + pos, chunkSize);
             chunkStream << "\r\n";
             std::string chunk = chunkStream.str();
-            send(fd, chunk.c_str(), chunk.size(), 0);
+            send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
             pos += chunkSize;
         }
 
         // Send the final chunk
         std::string finalChunk = "0\r\n\r\n";
-        send(fd, finalChunk.c_str(), finalChunk.size(), 0);
-        file.close();
+        send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
+        // file.close();
     }
-
     return 0;
 }
 
-int main(int argc, char **argv)
+int establishingServer(Server *server)
 {
-    if (argc < 2)
-    {
-        (void)argv;
-        std::cout << "correct input : ./webserv [configuration file]" << std::endl;
-        return EXIT_FAILURE;
-    }
-
-    Server *server = new Server();
     int serverSocket = 0;
     serverSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, getprotobyname("tcp")->p_proto);
     if (serverSocket < 0)
@@ -308,98 +292,82 @@ int main(int argc, char **argv)
 
     if (listen(serverSocket, 5) < 0)
         return perror("listen stream socket"), delete server, EXIT_FAILURE;
+    return serverSocket;
+}
+
+int multiplexInputOutput(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen)
+{
+    int conn_sock;
+    char buffer[CHUNK_SIZE];
+
+    struct epoll_event events[MAX_EVENTS];
+    int nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
+    if (nfds == -1)
+        return perror("epoll_wait"), EXIT_FAILURE;
+    for (int i = 0; i < nfds; i++)
+    {
+        if (events[i].data.fd == listen_sock)
+        {
+            conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
+            if (conn_sock == -1)
+                return std::cerr << "accept" << std::endl, EXIT_FAILURE;
+            // setnonblocking(conn_sock);
+            ev.events = EPOLLIN | EPOLLOUT;
+            ev.data.fd = conn_sock;
+            if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
+            {
+                // std::cout << "exit from here\n";
+                // return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
+                exit(404);
+            }
+        }
+        else if (events[i].events & EPOLLIN)
+        {
+            // memset(buffer, 0, sizeof(buffer));
+            ssize_t result = recv(events[i].data.fd, buffer, CHUNK_SIZE, 0);
+            // if (result == -1 && errno != EAGAIN)
+            (void)result;
+            //     close(events[i].data.fd);
+            // std::cout << buffer << std::endl;
+        }
+        else if (events[i].events & EPOLLOUT)
+        {
+            std::string send_buffer(buffer);
+            do_use_fd(events[i].data.fd, server, send_buffer);
+            // std::cout << buffer << std::endl;
+            // ssize_t result = send(events[i].data.fd, buffer, strlen(buffer), 0);
+            // if (result == -1 && errno != EAGAIN)
+            //     close(events[i].data.fd);
+        }
+    }
+    return EXIT_SUCCESS;
+}
+int main()
+{
+    Server *server = new Server();
 
     sockaddr_in clientAddress;
     socklen_t clientLen = sizeof(clientAddress);
-
+    int listen_sock, epollfd;
+    listen_sock = establishingServer(server);
     std::cout << "Server is listening" << std::endl;
 
-    // struct epoll_event ev, events[MAX_EVENTS];
-
-    //-------------
-    int listen_sock, epollfd;
-    int conn_sock;
-    // int nfds;
-    listen_sock = serverSocket;
     epollfd = epoll_create1(0);
     if (epollfd < 0)
         return std::cerr << "Failed to create epoll file descriptor" << std::endl, EXIT_FAILURE;
-    //-----------------
-    // int flags = fcntl(listen_sock, F_GETFL, 0);
-    // if (flags == -1)
-    // {
-    //     perror("fcntl");
-    //     exit(EXIT_FAILURE);
-    // }
-    // if (fcntl(listen_sock, F_SETFL, flags | O_NONBLOCK) == -1)
-    // {
-    //     perror("fcntl");
-    //     exit(EXIT_FAILURE);
-    // }
-    //-------------
+
     struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLET; // EPOLLIN for read, EPOLLET for edge-triggered
+    ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = listen_sock;
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
-    {
-        perror("epoll_ctl");
-        exit(EXIT_FAILURE);
-    }
-    //-------------
-    char buffer[CHUNK_SIZE];
+        return perror("epoll_ctl"), EXIT_FAILURE;
     while (true)
     {
-        struct epoll_event events[MAX_EVENTS];
-        int nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-        if (nfds == -1)
-        {
-            perror("epoll_wait");
-            exit(EXIT_FAILURE);
-        }
-
-        for (int i = 0; i < nfds; ++i)
-        {
-            if (events[i].data.fd == listen_sock)
-            {
-                conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
-                if (conn_sock == -1)
-                    return std::cerr << "accept" << std::endl, EXIT_FAILURE;
-                setnonblocking(conn_sock);
-                ev.events = EPOLLIN | EPOLLOUT;
-                ev.data.fd = conn_sock;
-                if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
-                    return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
-            }
-            else if (events[i].events & EPOLLIN)
-            {
-                double n = 0;
-                std::cout << "// Handle read events " << n++ << "\n";
-                // ssize_t result = read(events[i].data.fd, buffer, CHUNK_SIZE);
-                ssize_t result = recv(events[i].data.fd, buffer, CHUNK_SIZE, 0);
-                if (result == -1 && errno != EAGAIN)
-                {
-                    std::cout << "I was here\n";
-                    perror("read");
-                    close(events[i].data.fd);
-                }
-                // std::cout << "[" << buffer << "]" << "\n";
-            }
-            else if (events[i].events & EPOLLOUT)
-            {
-                double n = 0;
-                std::cout << "// Handle write events " << n++ << "\n";
-                ssize_t result = write(events[i].data.fd, buffer, CHUNK_SIZE);
-                if (result == -1 && errno != EAGAIN)
-                {
-                    perror("write");
-                    close(events[i].data.fd);
-                }
-                // std::cout << "[" << buffer << "]" << "\n";
-            }
-        }
+        if (multiplexInputOutput(server, listen_sock, ev, clientAddress, epollfd, clientLen) == 1)
+            return EXIT_FAILURE;
     }
 
-    close(serverSocket);
+    close(listen_sock);
     delete server;
     return EXIT_SUCCESS;
 }
