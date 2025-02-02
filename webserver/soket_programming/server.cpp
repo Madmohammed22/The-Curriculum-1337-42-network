@@ -112,6 +112,42 @@ std::string readFile(const std::string &path)
 //     }
 //     return filePath;
 // }
+
+std::string parsRequest_will(std::string request, std::string &method)
+{
+    if (request.empty())
+        return "";
+    std::cout << "Received request: " << request << std::endl;
+
+    // Extract the HTTP method
+    size_t methodEnd = request.find(' ');
+    if (methodEnd != std::string::npos)
+    {
+        method = request.substr(0, methodEnd);
+    }
+    else
+    {
+        method = "UNKNOWN";
+    }
+
+    std::string filePath = "/index.html"; // Default to index.html
+    size_t startPos = request.find("GET /");
+    if (startPos != std::string::npos)
+    {
+        startPos += 5;
+        size_t endPos = request.find(" HTTP/", startPos);
+        if (endPos != std::string::npos)
+        {
+            std::string requestedPath = request.substr(startPos, endPos - startPos);
+            if (!requestedPath.empty() && requestedPath != "/")
+            {
+                filePath = requestedPath;
+            }
+        }
+    }
+    return filePath;
+}
+
 std::string Server::parsRequest(std::string request)
 {
     if (request.empty())
