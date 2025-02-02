@@ -1,4 +1,18 @@
 #include "server.hpp"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <map>
+#include <cstring>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define CHUNK_SIZE 1024
+#define MAX_EVENTS 10
 
 Server::Server()
 {
@@ -80,13 +94,30 @@ std::string readFile(const std::string &path)
     return r;
 }
 
+// std::string Server::parsRequest(std::string request)
+// {
+//     if (request.empty())
+//         return "";
+//     std::cout << "Received request: " << request << std::endl;
+//     std::string filePath = "/index.html";
+//     size_t startPos = request.find("GET /");
+//     if (startPos != std::string::npos)
+//     {
+//         startPos += 5;
+//         size_t endPos = request.find(" HTTP/", startPos);
+//         if (endPos != std::string::npos)
+//         {
+//             filePath = request.substr(startPos, endPos - startPos);
+//         }
+//     }
+//     return filePath;
+// }
 std::string Server::parsRequest(std::string request)
 {
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    std::string filePath = "/index.html";
-    // std::string filePath = "/upload.html";
+    std::string filePath = "/index.html"; // Default to index.html
     size_t startPos = request.find("GET /");
     if (startPos != std::string::npos)
     {
@@ -94,51 +125,24 @@ std::string Server::parsRequest(std::string request)
         size_t endPos = request.find(" HTTP/", startPos);
         if (endPos != std::string::npos)
         {
-            filePath = request.substr(startPos, endPos - startPos);
+            std::string requestedPath = request.substr(startPos, endPos - startPos);
+            if (!requestedPath.empty() && requestedPath != "/")
+            {
+                filePath = requestedPath;
+            }
         }
     }
     return filePath;
 }
 
-std::string Server::parsRequest404(std::string request)
-{
-    if (request.empty())
-        return "";
-    std::cout << "Received request 404: " << request << std::endl;
-    std::string filePath = "errorPage.html";
-    return filePath;
-}
-
 std::string Server::creatHttpResponse(std::string contentType, std::string content)
 {
-    std::ostringstream oss;
-    oss << content.length();
-    std::string str = oss.str();
-
+    (void)content;
     std::string httpResponse = "HTTP/1.1 200 OK\r\n"
                                "Content-Type: " +
                                contentType + "\r\n"
                                              "Transfer-Encoding: chunked\r\n"
                                              "\r\n";
-    return httpResponse;
-}
-
-std::string Server::creatHttpResponseForPage404(std::string contentType, std::ifstream &file, std::string &s_content)
-{
-    std::stringstream content_v1;
-    content_v1 << file.rdbuf();
-    file.close();
-    std::string content = content_v1.str();
-    std::ostringstream oss;
-    oss << content.length();
-    std::string str = oss.str();
-
-    std::string httpResponse = "HTTP/1.1 404 Not Found\r\n"
-                               "Content-Type: " +
-                               contentType + "\r\n"
-                                             "Transfer-Encoding: chunked\r\n"
-                                             "\r\n";
-    s_content = content;
     return httpResponse;
 }
 
@@ -171,47 +175,10 @@ bool CanBeOpen(std::string &filePath)
     return true;
 }
 
-int uploadFiles(std::string filePath)
-{
-    std::string new_path = filePath.substr(filePath.find("=") + 1, filePath.length());
-    if (CanBeOpen(new_path))
-    {
-        std::ifstream file1(new_path.c_str(), std::ios::binary);
-        if (!file1.is_open())
-            return std::cerr << "Failed to open input file." << std::endl, -1;
-
-        std::ofstream output("output.txt", std::ios::binary);
-        if (!output.is_open())
-        {
-            std::cerr << "Failed to open output file." << std::endl;
-            file1.close();
-            return -1;
-        }
-
-        char buffer[CHUNK_SIZE];
-        while (file1.read(buffer, CHUNK_SIZE))
-        {
-            std::cout << "buffer" << std::endl;
-            output.write(buffer, CHUNK_SIZE);
-        }
-
-        size_t remaining = file1.gcount();
-        if (remaining > 0)
-        {
-            output.write(buffer, remaining);
-        }
-        file1.close();
-        output.close();
-    }
-    else
-        return std::cerr << "Failed to open input file." << std::endl, -1;
-    return 0;
-}
-
 int do_use_fd(int fd, Server *server, std::string request)
 {
     std::string filePath = server->parsRequest(request);
-    std::string content = "";
+    std::string content;
     if (CanBeOpen(filePath) == true)
     {
         content = readFile(filePath);
@@ -239,12 +206,13 @@ int do_use_fd(int fd, Server *server, std::string request)
         std::string path1 = "/var/www/Errors/404/";
         std::string path2 = "errorPage.html";
         std::string new_path = path1 + path2;
-        std::ifstream file(new_path.c_str());
-        std::string content;
-        if (!file.is_open())
-            return perror(NULL), delete server, EXIT_FAILURE;
+        std::string content = readFile(new_path); // Read the content of the error page
         std::string contentType = server->getContentType(new_path);
-        std::string notFound = server->creatHttpResponseForPage404(contentType, file, content);
+        std::string notFound = "HTTP/1.1 404 Not Found\r\n"
+                               "Content-Type: " +
+                               contentType + "\r\n"
+                                             "Transfer-Encoding: chunked\r\n"
+                                             "\r\n";
         send(fd, notFound.c_str(), notFound.length(), MSG_NOSIGNAL);
 
         size_t pos = 0;
@@ -260,10 +228,8 @@ int do_use_fd(int fd, Server *server, std::string request)
             pos += chunkSize;
         }
 
-        // Send the final chunk
         std::string finalChunk = "0\r\n\r\n";
         send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
-        // file.close();
     }
     return 0;
 }
@@ -295,10 +261,11 @@ int establishingServer(Server *server)
     return serverSocket;
 }
 
-int multiplexInputOutput(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen)
+int multiplexInputOutput_Post_method(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, std::string> &send_buffers)
 {
     int conn_sock;
-    char buffer[CHUNK_SIZE];
+    static char buffer[CHUNK_SIZE];
+
 
     struct epoll_event events[MAX_EVENTS];
     int nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
@@ -311,37 +278,38 @@ int multiplexInputOutput(Server *server, int listen_sock, struct epoll_event &ev
             conn_sock = accept(listen_sock, (struct sockaddr *)&clientAddress, &clientLen);
             if (conn_sock == -1)
                 return std::cerr << "accept" << std::endl, EXIT_FAILURE;
-            // setnonblocking(conn_sock);
+            setnonblocking(conn_sock);
             ev.events = EPOLLIN | EPOLLOUT;
             ev.data.fd = conn_sock;
             if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
             {
-                // std::cout << "exit from here\n";
-                // return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
-                exit(404);
+                return std::cerr << "epoll_ctl: conn_sock" << std::endl, EXIT_FAILURE;
             }
         }
         else if (events[i].events & EPOLLIN)
         {
-            // memset(buffer, 0, sizeof(buffer));
+            memset(buffer, 0, sizeof(buffer));
             ssize_t result = recv(events[i].data.fd, buffer, CHUNK_SIZE, 0);
-            // if (result == -1 && errno != EAGAIN)
-            (void)result;
-            //     close(events[i].data.fd);
-            // std::cout << buffer << std::endl;
+            if (result == 0 || (result == -1 && errno != EAGAIN))
+            {
+                close(events[i].data.fd);
+                continue;
+            }
+            buffer[result] = '\0';
+            send_buffers[events[i].data.fd].assign(buffer); // Store received data in send_buffers
         }
         else if (events[i].events & EPOLLOUT)
         {
-            std::string send_buffer(buffer);
-            do_use_fd(events[i].data.fd, server, send_buffer);
-            // std::cout << buffer << std::endl;
-            // ssize_t result = send(events[i].data.fd, buffer, strlen(buffer), 0);
-            // if (result == -1 && errno != EAGAIN)
-            //     close(events[i].data.fd);
+            if (!send_buffers[events[i].data.fd].empty())
+            {
+                do_use_fd(events[i].data.fd, server, send_buffers[events[i].data.fd]);
+                send_buffers[events[i].data.fd].clear(); // Clear the buffer after sending
+            }
         }
     }
     return EXIT_SUCCESS;
 }
+
 int main()
 {
     Server *server = new Server();
@@ -361,9 +329,10 @@ int main()
     ev.data.fd = listen_sock;
     if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1)
         return perror("epoll_ctl"), EXIT_FAILURE;
+    std::map<int, std::string> send_buffers;
     while (true)
     {
-        if (multiplexInputOutput(server, listen_sock, ev, clientAddress, epollfd, clientLen) == 1)
+        if (multiplexInputOutput_Post_method(server, listen_sock, ev, clientAddress, epollfd, clientLen, send_buffers) == 1)
             return EXIT_FAILURE;
     }
 

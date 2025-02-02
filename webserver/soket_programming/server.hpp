@@ -24,9 +24,6 @@
 #include <fcntl.h>
 
 using namespace std;
-#define TRUE 1
-#define MAX_EVENTS 2
-#define CHUNK_SIZE 1000
 
 class Server
 {
