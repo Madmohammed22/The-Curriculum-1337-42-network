@@ -11,8 +11,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define CHUNK_SIZE 1024
-#define MAX_EVENTS 10
 
 Server::Server()
 {

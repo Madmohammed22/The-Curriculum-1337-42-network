@@ -23,7 +23,10 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 
-using namespace std;
+// using namespace std;
+
+#define CHUNK_SIZE 1024
+#define MAX_EVENTS 10
 
 class Server
 {
@@ -44,7 +47,7 @@ public:
 
 class Reader{
 private :
-    std::vector<string> buffer;
+    std::vector<std::string> buffer;
 
 public:
     Reader();
