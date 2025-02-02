@@ -61,3 +61,35 @@ public:
 
 
 #endif
+
+
+/*
+std::string Server::parsRequest(const std::string &request, std::string &method, std::string &body) {
+    if (request.empty())
+        return "";
+    
+    std::cout << "Received request: " << request << std::endl;
+    
+    std::string filePath = "/index.html";
+    size_t methodEnd = request.find(' ');
+    if (methodEnd != std::string::npos) {
+        method = request.substr(0, methodEnd);
+    }
+
+    if (method == "GET" || method == "POST") {
+        size_t startPos = request.find(' ') + 1;
+        size_t endPos = request.find(' ', startPos);
+        if (endPos != std::string::npos) {
+            filePath = request.substr(startPos, endPos - startPos);
+        }
+
+        if (method == "POST") {
+            size_t bodyStart = request.find("\r\n\r\n");
+            if (bodyStart != std::string::npos) {
+                body = request.substr(bodyStart + 4);
+            }
+        }
+    }
+    return filePath;
+} 
+ */
