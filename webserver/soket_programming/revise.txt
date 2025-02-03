@@ -1,0 +1,541 @@
+Okay, I need to figure out what's wrong with this C++ server code. Let me start by looking through the code and trying to understand what it does. The code is for an HTTP server using epoll for handling multiple connections. Let's go through it step by step.
+
+First, the Server class has some methods like getContentType, parsRequest, creatHttpResponse, etc. The main function sets up the server socket, creates an epoll instance, and enters a loop where it processes events using epoll_wait.
+
+Looking at the establishingServer function: it creates a socket, sets SO_REUSEPORT, binds to port 8080, and starts listening. That seems okay. The main issue might be in how connections are handled.
+
+In the multiplexInputOutput_Post_method function, which handles epoll events. When a new connection is accepted (listen_sock event), it adds the new socket to epoll with EPOLLIN | EPOLLOUT events. Then, when EPOLLIN is triggered, it reads data into a buffer and stores it in a map (send_buffers). When EPOLLOUT is triggered, it calls do_use_fd to send the response.
+
+Wait, using EPOLLOUT immediately after accepting might not be right. EPOLLOUT is typically used when the socket is ready for writing, but if the socket's send buffer is full, EPOLLOUT would notify when space is available. However, adding EPOLLOUT right away when the socket is accepted might cause the event to trigger immediately, leading to unnecessary processing.
+
+Another thing: in the do_use_fd function, after parsing the request, it reads the file and sends the HTTP response in chunks using Transfer-Encoding: chunked. But looking at the code, when sending the response, it first sends the headers, then loops through the content in chunks. However, the send calls are made in a loop without checking if the send buffer is full. Since the socket is non-blocking, send might return EAGAIN or EWOULDBLOCK if the buffer is full. But the current code doesn't handle that; it assumes all data is sent immediately. This could lead to incomplete sends or data loss.
+
+Also, in the readFile function, it's reading a chunk each time, but the way pos is managed might be problematic. Each call to readFile reads from the current position, but in the code, pos is a local variable in do_use_fd, which is initialized to 0 each time. Wait, no, in do_use_fd, for a valid filePath, pos is set to 0, and then in a loop, content is read in chunks. Wait, no, the readFile function is called once with pos=0, and then the loop uses pos < content.size(). Wait, no: the code in do_use_fd after CanBeOpen is true:
+
+pos = 0;
+
+content = readFile(filePath, pos, CHUNK_SIZE);
+
+Then in a loop while (pos < content.size()), but content is the entire file read in chunks? Wait, no. The readFile function called here is the one that takes pos and chunkSize. Wait, the readFile function reads from the file starting at pos, reads chunkSize bytes, updates pos, and returns the read data. But in the code, content is assigned to readFile(filePath, pos, CHUNK_SIZE), which would read the first chunk. Then, in the loop, pos is incremented by bytesRead. However, the code then uses content.size(), which is the size of the first chunk. So the loop is only processing the first chunk. Wait, that's a problem. Because readFile is called once, and then the loop is using content.size(), which is the size of the first chunk. So if the file is larger than CHUNK_SIZE, the code will send only the first chunk and then the loop will terminate because pos would be CHUNK_SIZE, and content.size() is CHUNK_SIZE. That means the code is not reading the entire file in chunks; instead, it reads the first chunk, sends it, and stops. That's a major bug. The readFile function is supposed to read the entire file in chunks, but in the current code, it's only reading the first chunk.
+
+Wait, let's look at the readFile function:
+
+std::string readFile(const std::string &path, size_t &pos, size_t chunkSize) {
+
+std::ifstream infile(path.c_str(), std::ios::binary);
+
+if (!infile.is_open())
+
+return "";
+
+infile.seekg(pos);
+
+char buffer[chunkSize];
+
+infile.read(buffer, chunkSize);
+
+size_t bytesRead = infile.gcount();
+
+pos += bytesRead;
+
+return std::string(buffer, bytesRead);
+
+}
+
+So each time readFile is called, it opens the file, seeks to pos, reads chunkSize bytes, updates pos, and returns the data. But in do_use_fd, the code does:
+
+content = readFile(filePath, pos, CHUNK_SIZE);
+
+So content is the first chunk. Then in the loop:
+
+while (pos < content.size()) {
+
+// send chunk
+
+}
+
+But content.size() here is the size of the first chunk. pos is set to bytesRead (e.g., 1024 if the file is larger), and content.size() is 1024, so the loop will not execute again. Therefore, the code only sends the first chunk of the file and then stops. That's incorrect. The loop should be reading the entire file in chunks, but the current code is not structured correctly. Instead, the code should read the file in chunks until the end, but as written, it only reads the first chunk.
+
+So the problem is in how the file is read and sent. The readFile function is called once, and then the loop uses the content from that single read. So the code is not reading the entire file in multiple chunks. Instead, the readFile function is supposed to be called in a loop, reading each chunk and sending it. But the current code calls readFile once, which reads the first chunk, and then the loop sends that chunk, but then there's no further reading. So the code is not handling large files correctly; it only sends the first CHUNK_SIZE bytes.
+
+Another issue is that the Server::creatHttpResponse function takes content as an argument but doesn't use it. That's harmless but maybe a leftover from previous code.
+
+In the do_use_fd function, when sending the response, if the file is found, it sends the headers, then loops over the content (which is only the first chunk), sends chunks in the Transfer-Encoding: chunked format, and then sends the final chunk. But since the content is only the first part of the file, this would send an incomplete file.
+
+Wait, but in the code, after content = readFile(filePath, pos, CHUNK_SIZE); the pos is updated to the number of bytes read. Then, the code enters a loop while (pos < content.size()). Wait, content.size() is the size of the data read in the first chunk. But pos was set to 0 before the first read, then readFile reads CHUNK_SIZE bytes, pos becomes CHUNK_SIZE. Then, the loop checks pos < content.size(). But content.size() is CHUNK_SIZE, so pos (CHUNK_SIZE) is not less than content.size(), so the loop doesn't execute. So only the first chunk is sent. That's definitely a problem. The loop is incorrect.
+
+Wait, no. Let me re-express:
+
+In the code:
+
+pos = 0;
+
+content = readFile(filePath, pos, CHUNK_SIZE); // This reads the first chunk (0 to 1024), pos becomes 1024
+
+// Then, content is the first chunk's data (size 1024)
+
+// Now, the loop is while (pos < content.size()), but pos is 1024, content.size() is 1024, so loop doesn't run.
+
+So the code sends the first chunk as the entire content, then sends the final chunk. But this is wrong. The code should read the entire file in chunks, but it's only reading the first part. The loop is supposed to read until the end of the file, but in the current code, the loop is checking pos against content.size() (the size of the first chunk), not the actual file size. So the code is broken here.
+
+The correct approach would be to keep reading the file in chunks until the end. So instead of reading once and then looping over the content, the code should loop while reading the file in chunks, each time calling readFile with the updated pos, and sending each chunk as part of the chunked response.
+
+So the current code in do_use_fd is:
+
+content = readFile(filePath, pos, CHUNK_SIZE);
+
+// pos is now CHUNK_SIZE
+
+while (pos < content.size()) {
+
+// send chunk from content
+
+}
+
+But content is only the first chunk. The loop should instead read the file in chunks until the entire file is read, not just the first part.
+
+So the code is not handling the file reading correctly. The readFile function is supposed to be called multiple times, each time reading the next chunk. However, the current code reads it once and then loops based on the size of that first chunk, which is incorrect.
+
+To fix this, the code should read the file in a loop, each time getting a new chunk, until there's no more data. So, in do_use_fd:
+
+Instead of:
+
+content = readFile(filePath, pos, CHUNK_SIZE);
+
+while (pos < content.size()) {
+
+...
+
+}
+
+It should be something like:
+
+size_t pos = 0;
+
+std::string chunk;
+
+do {
+
+chunk = readFile(filePath, pos, CHUNK_SIZE);
+
+if (chunk.empty()) break;
+
+// send chunk as part of chunked transfer
+
+} while (!chunk.empty());
+
+But the way readFile is currently written, opening the file each time is inefficient. Opening the file once, reading chunks in a loop, and then closing it would be better. However, the current readFile function opens the file each time it's called, which is not efficient and could cause issues if the file changes between reads. Moreover, each time readFile is called, it starts from the current pos, but if the file is opened each time, that pos is relative to the new file stream. Wait, no: the pos variable is passed by reference to readFile. So when readFile is called, it opens the file, seeks to pos (which is the current position in the overall read), reads a chunk, updates pos, and returns the data. Then the next call to readFile would open the file again, seek to the new pos, etc. But this is highly inefficient, as opening and closing the file each time is slow. Moreover, the file may be modified between reads, leading to inconsistencies.
+
+So the correct approach is to open the file once, read in chunks, and send each chunk as part of the chunked response. The current code structure doesn't do that. Instead, it opens the file once, reads the entire content into a string (as in the commented-out readFile function), but that's not suitable for large files. However, the current code tries to read in chunks but fails to do so because of the incorrect loop structure.
+
+Another issue is that the Server::creatHttpResponse function includes "Transfer-Encoding: chunked" but sends the entire content in one go. However, when using chunked encoding, each chunk should be sent with its size in hex followed by the data. The code does this, but again, only for the first chunk because of the loop issue.
+
+So the main problem is that the code reads only the first chunk of the file and sends it, leading to incomplete responses for files larger than CHUNK_SIZE.
+
+Another possible issue is that when send() is called in non-blocking mode, it may not send all the data immediately. The code doesn't handle partial sends. For example, if send() returns a value less than the size of the chunk, the code should handle resending the remaining data. However, in the current code, send() is called once per chunk without checking the return value. This could result in incomplete data being sent, especially under high load or with slow clients.
+
+Additionally, when handling EPOLLOUT events, the code currently assumes that sending can be done all at once. But with non-blocking sockets, EPOLLOUT should be monitored to know when the socket is writable again after a partial send.
+
+Other possible issues:
+
+- The Server::parsRequest function only handles GET requests. What about other methods like POST? The code may not handle them correctly.
+
+- In the multiplexInputOutput_Post_method function, when reading data (EPOLLIN event), it uses recv with a fixed buffer. If the client sends a large request in multiple packets, the code will only read the first CHUNK_SIZE bytes and then process that as the entire request. This could lead to incomplete request parsing.
+
+- The send_buffers map associates each file descriptor with a request string. However, if a client sends multiple requests over the same connection (e.g., HTTP pipelining), the code may not handle them properly. But given that it's a simple server, this might not be a priority.
+
+- In the do_use_fd function, after sending the response, the connection is not closed. However, since the server is using HTTP/1.1 with chunked encoding, it should handle keep-alive correctly. However, the code doesn't check the Connection header, so it might not close the connection when needed.
+
+- The use of send() with MSG_NOSIGNAL is correct to avoid SIGPIPE, but errors from send() are not handled. For example, if send() returns -1 (other than EAGAIN/EWOULDBLOCK), the code doesn't close the connection or handle the error.
+
+- The CanBeOpen function modifies the filePath variable, but when it returns, the code uses filePath as the path. However, in the error case (404), it uses a different path. That part seems okay.
+
+- The epoll events for the connected sockets are set to EPOLLIN | EPOLLOUT. But EPOLLOUT is always available for writing unless the send buffer is full. By including EPOLLOUT in the event mask, the code might be causing the EPOLLOUT event to trigger continuously, leading to high CPU usage when the socket is writable.
+
+Now, let's summarize the main issues:
+
+1. File reading is incorrect for files larger than CHUNK_SIZE. Only the first chunk is read and sent, leading to incomplete responses.
+
+2. The send() calls do not handle partial writes, which can occur with non-blocking sockets. This can lead to data not being sent completely.
+
+3. The EPOLLOUT event is added to the connected sockets immediately, which may cause unnecessary triggering and high CPU usage.
+
+4. The request parsing (parsRequest) may not handle incomplete requests, as it reads only up to CHUNK_SIZE bytes.
+
+Let's tackle each issue step by step.
+
+**Issue 1: File reading loop**
+
+The current code reads the first chunk and loops based on its size. The loop should instead read the file in chunks until there's no more data. The code should read each chunk, send it, and repeat until the end of the file.
+
+In the do_use_fd function:
+
+Original code:
+
+content = readFile(filePath, pos, CHUNK_SIZE);
+
+// pos is now CHUNK_SIZE (if file is larger)
+
+// content is the first CHUNK_SIZE bytes
+
+while (pos < content.size()) { ... }
+
+But content.size() is CHUNK_SIZE, so the loop doesn't run.
+
+To fix this, the code should read the file in a loop until readFile returns an empty string (indicating no more data). However, the current readFile function is designed to read a chunk each time it's called, updating pos. So the correct approach is to read the file in chunks until no more data is read.
+
+Modified code:
+
+size_t pos = 0;
+
+std::string chunk;
+
+do {
+
+chunk = readFile(filePath, pos, CHUNK_SIZE);
+
+if (chunk.empty()) {
+
+break;
+
+}
+
+// Send this chunk
+
+std::ostringstream chunkStream;
+
+chunkStream << std::hex << chunk.size() << "\r\n";
+
+chunkStream << chunk << "\r\n";
+
+std::string chunkData = chunkStream.str();
+
+ssize_t sent = send(fd, chunkData.c_str(), chunkData.size(), MSG_NOSIGNAL);
+
+// Handle partial sends here
+
+} while (!chunk.empty());
+
+// Send final chunk
+
+std::string finalChunk = "0\r\n\r\n";
+
+send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
+
+But this requires modifying the readFile function to not read the entire file at once. However, the current readFile function reads one chunk each time it's called. However, the current readFile function opens the file each time, which is inefficient. It's better to open the file once and read chunks in a loop.
+
+So, the code in do_use_fd should be restructured to:
+
+std::ifstream file(filePath.c_str(), std::ios::binary);
+
+if (!file.is_open()) {
+
+// Handle 404
+
+} else {
+
+// Send headers
+
+// Then read chunks from the file and send them
+
+char buffer[CHUNK_SIZE];
+
+while (file) {
+
+file.read(buffer, CHUNK_SIZE);
+
+size_t bytesRead = file.gcount();
+
+if (bytesRead > 0) {
+
+std::ostringstream chunkStream;
+
+chunkStream << std::hex << bytesRead << "\r\n";
+
+chunkStream.write(buffer, bytesRead);
+
+chunkStream << "\r\n";
+
+std::string chunk = chunkStream.str();
+
+send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
+
+}
+
+}
+
+// Send final chunk
+
+std::string finalChunk = "0\r\n\r\n";
+
+send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
+
+}
+
+This approach opens the file once and reads it in chunks, sending each chunk as part of the chunked response. This would solve the problem of only sending the first chunk.
+
+**Issue 2: Handling partial sends**
+
+When using non-blocking sockets, the send() function may not send all the data at once. The code needs to handle partial sends by checking the return value and resending the remaining data when possible.
+
+In the current code, send() is called once per chunk, which may not send all bytes. For example:
+
+ssize_t sent = send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
+
+if (sent == -1) {
+
+// Handle error, maybe EAGAIN/EWOULDBLOCK
+
+} else if (sent < chunk.size()) {
+
+// Need to keep track of remaining data and send it when EPOLLOUT is triggered again
+
+}
+
+This requires modifying the code to buffer unsent data and wait for EPOLLOUT events to continue sending. However, the current code structure sends the entire response in one go when EPOLLOUT is triggered, which doesn't account for partial sends. Therefore, the server may fail to send large files or under high load.
+
+To handle this, the send_buffers map should store the remaining data to be sent for each socket. When EPOLLOUT is triggered, the code should attempt to send as much as possible, updating the buffer and removing it once all data is sent.
+
+This complicates the code, as each response must be sent incrementally. The current code sends the entire response in one EPOLLOUT event, assuming that all data can be written immediately, which isn't reliable.
+
+**Issue 3: EPOLLOUT event handling**
+
+Including EPOLLOUT in the event mask for connected sockets when they are added to epoll may lead to continuous triggering of EPOLLOUT events if the socket is always writable. This can cause high CPU usage as the event loop constantly processes EPOLLOUT events even when there's no data to send.
+
+The correct approach is to monitor EPOLLOUT only when needed. Initially, after accepting a connection, the socket should be monitored for EPOLLIN only. Once a request is read and a response is ready to be sent, the code should then monitor EPOLLOUT to send the response. However, in the current code, EPOLLOUT is added upfront, leading to potential busy looping.
+
+**Issue 4: Incomplete request reading**
+
+The current code reads up to CHUNK_SIZE bytes when EPOLLIN is triggered. If the client sends a request larger than CHUNK_SIZE, the code will only read the first part and process it, leading to an incomplete request. The code should continue reading until the entire request is received (e.g., until "\r\n\r\n" is found for HTTP requests).
+
+Other issues:
+
+- The Server::parsRequest function only looks for "GET /", which may not handle other HTTP methods or malformed requests properly.
+
+- The code uses a map to store send buffers, but if multiple requests come in on the same connection (HTTP keep-alive), the code may not reset the state properly.
+
+- Error handling for send() and recv() is minimal, leading to potential resource leaks or crashes.
+
+**Proposed Fixes**
+
+1. **File Reading Loop:**
+
+Modify the do_use_fd function to read the file in a loop using a single file stream, sending each chunk correctly. This ensures that the entire file is read and sent in chunked encoding.
+
+2. **Handling Partial Sends:**
+
+Implement buffering for unsent data and adjust epoll events to monitor EPOLLOUT only when there's data to send. When a partial send occurs, store the remaining data and send it when EPOLLOUT is triggered again.
+
+3. **Adjust EPOLLOUT Monitoring:**
+
+Only enable EPOLLOUT when there's data to send, and disable it once all data is sent to avoid unnecessary events.
+
+4. **Read Complete Requests:**
+
+Modify the EPOLLIN handling to read all data until the HTTP request headers are fully received (e.g., until "\r\n\r\n" is found), handling multiple recv calls if necessary.
+
+**Step-by-Step Explanation of Fixes**
+
+**Fixing the File Reading:**
+
+In do_use_fd, instead of reading the file once and sending only the first chunk:
+
+- Open the file once.
+
+- Read in chunks in a loop.
+
+- Send each chunk as part of the chunked response.
+
+Here's the modified code section:
+
+if (CanBeOpen(filePath)) {
+
+std::ifstream file(filePath.c_str(), std::ios::binary);
+
+if (!file.is_open()) {
+
+// handle error, though CanBeOpen should have ensured it's open
+
+return -1;
+
+}
+
+// Send headers
+
+std::string contentType = server->getContentType(filePath);
+
+std::string httpResponse = server->creatHttpResponse(contentType, "");
+
+send(fd, httpResponse.c_str(), httpResponse.size(), MSG_NOSIGNAL);
+
+char buffer[CHUNK_SIZE];
+
+while (file) {
+
+file.read(buffer, CHUNK_SIZE);
+
+size_t bytesRead = file.gcount();
+
+if (bytesRead == 0) {
+
+break;
+
+}
+
+std::ostringstream chunkStream;
+
+chunkStream << std::hex << bytesRead << "\r\n";
+
+chunkStream.write(buffer, bytesRead);
+
+chunkStream << "\r\n";
+
+std::string chunk = chunkStream.str();
+
+ssize_t sent = send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
+
+// Handle partial sends here (see next fix)
+
+}
+
+// Send final chunk
+
+std::string finalChunk = "0\r\n\r\n";
+
+send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
+
+} else {
+
+// Handle 404
+
+}
+
+This ensures that the entire file is read and sent in chunks.
+
+**Handling Partial Sends:**
+
+To handle partial sends, we need to track the remaining data for each socket and send it when possible. Modify the send_buffers map to store the remaining data to send. For each socket, when a send() call doesn't send all bytes, store the remaining data and wait for EPOLLOUT.
+
+However, the current code sends the entire response immediately when EPOLLOUT is triggered. Instead, we should send the response in parts, buffering unsent data.
+
+This requires changing the structure of the code:
+
+- When a request is processed, generate the entire response and store it in a buffer for the socket.
+
+- Then, enable EPOLLOUT for the socket to start sending the data.
+
+- In the EPOLLOUT handler, send as much as possible from the buffer, removing sent bytes. If there's remaining data, keep EPOLLOUT enabled; else, disable it.
+
+But generating the entire response in memory might not be efficient for large files. Alternatively, handle the response in chunks as they are read from the file, sending each chunk incrementally with proper partial send handling.
+
+This is more complex but necessary for non-blocking I/O.
+
+Alternatively, use a state machine for each connection, tracking the file reading and sending position.
+
+But given time constraints, perhaps the best way is to generate the entire response in memory (not suitable for large files), but for the sake of this example, let's adjust the code to handle partial sends.
+
+Modify the send_buffers to store the response data that needs to be sent. When EPOLLOUT is triggered, send as much as possible, update the buffer, and remove the socket from epoll monitoring once done.
+
+But in the current code, send_buffers stores the request data, not the response. So we need a separate buffer for responses.
+
+Alternatively, restructure the code to have a write buffer for each socket.
+
+This would require:
+
+1. When processing a request (EPOLLIN), generate the response and store it in a write buffer for the socket.
+
+2. Enable EPOLLOUT for the socket.
+
+3. When EPOLLOUT is triggered, send as much as possible from the write buffer, handle partial sends, and disable EPOLLOUT once all data is sent.
+
+But generating the entire response in memory might not be feasible for large files. Thus, an alternative approach is to read the file and send it incrementally, handling partial sends for each chunk.
+
+This would require for each socket:
+
+- Track the file being sent, the current position, and the chunk being sent.
+
+But this complicates the state management.
+
+Alternatively, use sendfile() system call for efficient file sending, but that's beyond the current code's approach.
+
+Given the complexity, perhaps the code should be restructured to handle partial sends by buffering each chunk and managing the send state.
+
+**Revised Approach for Handling Sends:**
+
+1. When a request is processed, open the file and prepare to send it in chunks.
+
+2. For each socket, maintain a structure that tracks the file descriptor, current position in the file, and the file stream.
+
+3. When EPOLLOUT is triggered, read a chunk from the file, send it, and handle partial sends by keeping track of unsent data.
+
+However, managing open file descriptors for each socket is complex and may lead to resource leaks.
+
+An alternative is to read the entire file into memory (not suitable for large files) and send it in parts. But this is not scalable.
+
+Given the time constraints, the primary fix here is to correctly read and send the entire file in chunks, as the original code's main problem is only sending the first chunk. Handling partial sends would require significant changes beyond the initial scope.
+
+**Fixing EPOLLOUT Registration:**
+
+In the multiplexInputOutput_Post_method function, when accepting a new connection, the code adds EPOLLIN | EPOLLOUT to the epoll events. This causes EPOLLOUT to trigger immediately if the socket is writable. Instead, EPOLLOUT should be added only when there is data to send.
+
+So, initially, after accepting, monitor only EPOLLIN:
+
+ev.events = EPOLLIN | EPOLLET;  // Edge-triggered for reading
+
+epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev);
+
+When the request is read and processed, generate the response, store it in a send buffer for the socket, and then enable EPOLLOUT for that socket.
+
+But how to modify the event for the socket? Use epoll_ctl with EPOLL_CTL_MOD to add EPOLLOUT.
+
+So, in the EPOLLIN handler:
+
+After reading the request and generating the response, store the response in a send buffer for the socket, then modify the epoll event to include EPOLLOUT.
+
+This way, EPOLLOUT is only monitored when there's data to send.
+
+In code:
+
+When handling EPOLLIN:
+
+read the request, generate response, store in send_buffer[fd], then:
+
+struct epoll_event ev;
+
+ev.events = EPOLLOUT | EPOLLET;  // Or EPOLLIN | EPOLLOUT if expecting more requests (but HTTP/1.1 keep-alive may require this)
+
+ev.data.fd = fd;
+
+if (epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &ev) == -1) {
+
+perror("epoll_ctl modify");
+
+close(fd);
+
+}
+
+Then, in the EPOLLOUT handler, send the data from send_buffer[fd], handling partial sends.
+
+But this requires tracking the send buffer and the current position in the buffer for each socket.
+
+**Summary of Fixes Needed:**
+
+1. **File Reading Loop:**
+
+- Read the entire file in chunks and send each chunk correctly.
+
+2. **EPOLLOUT Handling:**
+
+- Only enable EPOLLOUT when there's data to send.
+
+- Handle partial sends by buffering unsent data and resuming when EPOLLOUT is triggered again.
+
+3. **Request Parsing:**
+
+- Read the entire request (up to the end of headers) before processing.
+
+4. **Error Handling:**
+
+- Check return values of send() and recv() for errors and handle appropriately.
+
+Given the complexity of all these fixes, the most critical issue is the incorrect file reading loop. Fixing that would resolve the problem of incomplete responses for files larger than CHUNK_SIZE.

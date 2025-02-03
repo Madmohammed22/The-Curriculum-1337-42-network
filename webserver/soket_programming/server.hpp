@@ -25,8 +25,8 @@
 
 // using namespace std;
 
-#define CHUNK_SIZE 1024
-#define MAX_EVENTS 10
+// #define CHUNK_SIZE 1024
+// #define MAX_EVENTS 10
 
 class Server
 {
@@ -62,7 +62,37 @@ public:
 
 #endif
 
+/*
++ bool CanBeOpen(std::string &filePath)
++ {
++     std::string new_path = "/var/www/Resources/";
++     new_path.append(filePath);
++     std::ifstream file(new_path.c_str());
++     if (!file.is_open())
++     {
++         std::cerr << "Failed to open file:: " << new_path << std::endl;
++         return false;
++     }
++     filePath = new_path;
++     return true;
++ } 
+ */
+/*
+{
+    std::ifstream infile(path.c_str(), std::ios::binary);
+    if (!infile.is_open())
+        return "";
 
+    infile.seekg(pos);
+    char buffer[chunkSize];
+    infile.read(buffer, chunkSize);
+    size_t bytesRead = infile.gcount();
+    pos += bytesRead;
+
+    return std::string(buffer, bytesRead);
+}
+
+ */
 /*
 std::string Server::parsRequest(const std::string &request, std::string &method, std::string &body) {
     if (request.empty())

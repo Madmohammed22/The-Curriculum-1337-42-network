@@ -11,6 +11,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#define CHUNK_SIZE 1024
+#define MAX_EVENTS 10
 
 Server::Server()
 {
@@ -25,6 +27,9 @@ Server::Server(const Server &Init)
 Server &Server::operator=(const Server &Init)
 {
     if (this == &Init)
+        // Copy data members from Init to this
+        // Example: this->dataMember = Init.dataMember;
+        // Add actual data members here
         return *this;
     return *this;
 }
@@ -66,50 +71,68 @@ std::string Server::getContentType(const std::string &path)
     return "application/octet-stream";
 }
 
-std::string readFile(const std::string &path)
-{
-    std::stringstream content;
-    if (path.empty())
-        return "";
+// std::string readFile(const std::string &path)
+// {
+//     // std::cout << "[" << path << "]\n";
+//     std::stringstream content;
+//     if (path.empty())
+//         return "";
 
+//     std::ifstream infile(path.c_str(), std::ios::binary);
+//     if (!infile.is_open())
+//         return "";
+
+//     char buffer[CHUNK_SIZE];
+//     while (infile.read(buffer, CHUNK_SIZE))
+//     {
+//         content.write(buffer, CHUNK_SIZE);
+//     }
+
+//     size_t remaining = infile.gcount();
+//     if (remaining > 0)
+//     {
+//         content.write(buffer, remaining);
+//     }
+
+//     std::string r = content.str();
+//     // std::cout << "---->\n"<< r << "<\n -----" <<  std::endl;
+//     return r;
+// }
+
+std::string readFile(const std::string &path, size_t &pos, size_t chunkSize)
+{
     std::ifstream infile(path.c_str(), std::ios::binary);
     if (!infile.is_open())
         return "";
 
-    char buffer[CHUNK_SIZE];
-    while (infile.read(buffer, CHUNK_SIZE))
-    {
-        content.write(buffer, CHUNK_SIZE);
-    }
+    infile.seekg(pos);
+    char buffer[chunkSize];
+    std::memset(buffer, 0, chunkSize);
+    infile.read(buffer, chunkSize);
+    size_t bytesRead = infile.gcount();
+    pos += bytesRead;
 
-    size_t remaining = infile.gcount();
-    if (remaining > 0)
-    {
-        content.write(buffer, remaining);
-    }
-
-    std::string r = content.str();
-    return r;
+    return std::string(buffer, bytesRead);
 }
 
-// std::string Server::parsRequest(std::string request)
-// {
-//     if (request.empty())
-//         return "";
-//     std::cout << "Received request: " << request << std::endl;
-//     std::string filePath = "/index.html";
-//     size_t startPos = request.find("GET /");
-//     if (startPos != std::string::npos)
-//     {
-//         startPos += 5;
-//         size_t endPos = request.find(" HTTP/", startPos);
-//         if (endPos != std::string::npos)
-//         {
-//             filePath = request.substr(startPos, endPos - startPos);
-//         }
-//     }
-//     return filePath;
-// }
+std::string parseRequest(std::string request)
+{
+    if (request.empty())
+        return "";
+    std::cout << "Received request: " << request << std::endl;
+    std::string filePath = "/index.html";
+    size_t startPos = request.find("GET /");
+    if (startPos != std::string::npos)
+    {
+        startPos += 5;
+        size_t endPos = request.find(" HTTP/", startPos);
+        if (endPos != std::string::npos)
+        {
+            filePath = request.substr(startPos, endPos - startPos);
+        }
+    }
+    return filePath;
+}
 
 std::string parsRequest_will(std::string request, std::string &method)
 {
@@ -128,7 +151,7 @@ std::string parsRequest_will(std::string request, std::string &method)
         method = "UNKNOWN";
     }
 
-    std::string filePath = "/index.html"; // Default to index.html
+    std::string filePath = "/index.html";
     size_t startPos = request.find("GET /");
     if (startPos != std::string::npos)
     {
@@ -151,7 +174,7 @@ std::string Server::parsRequest(std::string request)
     if (request.empty())
         return "";
     std::cout << "Received request: " << request << std::endl;
-    std::string filePath = "/index.html"; // Default to index.html
+    std::string filePath = "/index.html";
     size_t startPos = request.find("GET /");
     if (startPos != std::string::npos)
     {
@@ -213,25 +236,91 @@ int do_use_fd(int fd, Server *server, std::string request)
 {
     std::string filePath = server->parsRequest(request);
     std::string content;
+    size_t pos = 0;
+
+    // if (CanBeOpen(filePath) == true)
+    // {
+    //     pos = 0;
+    //     content = readFile(filePath, pos, CHUNK_SIZE);
+    //     // content = readFile(filePath);
+    //     std::string contentType = server->getContentType(filePath);
+    //     std::string httpResponse = server->creatHttpResponse(contentType, content);
+    //     send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL);
+
+    //     while (pos < content.size())
+    //     {
+    //         size_t chunkSize = (CHUNK_SIZE < (content.size() - pos)) ? CHUNK_SIZE : (content.size() - pos);
+    //         std::ostringstream chunkStream;
+    //         chunkStream << std::hex << chunkSize << "\r\n";
+    //         chunkStream.write(content.data() + pos, chunkSize);
+    //         chunkStream << "\r\n";
+    //         std::string chunk = chunkStream.str();
+    //         send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
+    //         pos += chunkSize;
+    //     }
+    //     std::string finalChunk = "0\r\n\r\n";
+    //     send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
+    // }
     if (CanBeOpen(filePath) == true)
     {
-        content = readFile(filePath);
-        std::string contentType = server->getContentType(filePath);
-        std::string httpResponse = server->creatHttpResponse(contentType, content);
-        send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL);
+        std::ifstream file(filePath.c_str(), std::ios::binary);
+        if (!file.is_open())
+        {
+            std::cerr << "Failed to open file: " << filePath << std::endl;
+            return -1;
+        }
 
-        size_t pos = 0;
-        while (pos < content.size())
-        {  
-            size_t chunkSize = (CHUNK_SIZE < (content.size() - pos)) ? CHUNK_SIZE : (content.size() - pos);
+        std::string contentType = server->getContentType(filePath);
+        std::string httpResponse = server->creatHttpResponse(contentType, "");
+        send(fd, httpResponse.c_str(), httpResponse.size(), MSG_NOSIGNAL);
+
+        char buffer[CHUNK_SIZE];
+        while (file)
+        {
+            file.read(buffer, CHUNK_SIZE);
+            size_t bytesRead = file.gcount();
+            if (bytesRead == 0)
+                break;
+
             std::ostringstream chunkStream;
-            chunkStream << std::hex << chunkSize << "\r\n";
-            chunkStream.write(content.data() + pos, chunkSize);
+            chunkStream << std::hex << bytesRead << "\r\n";
+            chunkStream.write(buffer, bytesRead);
             chunkStream << "\r\n";
             std::string chunk = chunkStream.str();
-            send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
-            pos += chunkSize;
+
+            ssize_t sent = send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
+            if (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+            {
+                // Handle non-blocking send (needs further logic for partial sends)
+                ssize_t totalSent = 0;
+                while ((size_t)totalSent < chunk.size())
+                {
+                    ssize_t sent = send(fd, chunk.c_str() + totalSent, chunk.size() - totalSent, MSG_NOSIGNAL);
+                    if (sent == -1)
+                    {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK)
+                        {
+                            // If the socket is not ready for sending, break and try again later
+                            break;
+                        }
+                        else
+                        {
+                            std::cerr << "Failed to send data" << std::endl;
+                            return -1;
+                        }
+                    }
+                    totalSent += sent;
+                }
+                break;
+            }
+            // Note: In a real scenario, handle partial sends and buffer remaining data
+            if (sent == -1)
+            {
+                std::cerr << "Failed to send data" << std::endl;
+                break;
+            }
         }
+
         std::string finalChunk = "0\r\n\r\n";
         send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
     }
@@ -240,7 +329,9 @@ int do_use_fd(int fd, Server *server, std::string request)
         std::string path1 = "/var/www/Errors/404/";
         std::string path2 = "errorPage.html";
         std::string new_path = path1 + path2;
-        std::string content = readFile(new_path); // Read the content of the error page
+        pos = 0;
+        std::string content = readFile(new_path, pos, CHUNK_SIZE);
+        // std::string content = readFile(new_path);
         std::string contentType = server->getContentType(new_path);
         std::string notFound = "HTTP/1.1 404 Not Found\r\n"
                                "Content-Type: " +
@@ -273,7 +364,7 @@ int establishingServer(Server *server)
     int serverSocket = 0;
     serverSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, getprotobyname("tcp")->p_proto);
     if (serverSocket < 0)
-        return std::cerr << "opening stream socket." << std::endl, EXIT_FAILURE;
+        return delete server, std::cerr << "opening stream socket." << std::endl, EXIT_FAILURE;
 
     sockaddr_in serverAddress;
     serverAddress.sin_family = AF_INET;
@@ -298,8 +389,7 @@ int establishingServer(Server *server)
 int multiplexInputOutput_Post_method(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, std::string> &send_buffers)
 {
     int conn_sock;
-    static char buffer[CHUNK_SIZE];
-
+    // static char buffer[CHUNK_SIZE];
 
     struct epoll_event events[MAX_EVENTS];
     int nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
@@ -322,25 +412,44 @@ int multiplexInputOutput_Post_method(Server *server, int listen_sock, struct epo
         }
         else if (events[i].events & EPOLLIN)
         {
-            memset(buffer, 0, sizeof(buffer));
-            ssize_t result = recv(events[i].data.fd, buffer, CHUNK_SIZE, 0);
-            if (result == 0 || (result == -1 && errno != EAGAIN))
+            std::string &buffer = send_buffers[events[i].data.fd];
+            char temp[CHUNK_SIZE];
+            ssize_t result;
+            while ((result = recv(events[i].data.fd, temp, sizeof(temp), 0)) > 0)
+            {
+                buffer.append(temp, result);
+                if (buffer.find("\r\n\r\n") != std::string::npos)
+                    break; // End of headers
+            }
+            if (result <= 0 && errno != EAGAIN)
             {
                 close(events[i].data.fd);
-                continue;
+                send_buffers.erase(events[i].data.fd);
             }
-            buffer[result] = '\0';
-            send_buffers[events[i].data.fd].assign(buffer); // Store received data in send_buffers
+            else
+            {
+                // // Process the complete request here
+                // // Modify epoll to monitor EPOLLOUT after response is generated
+                // ev.events = EPOLLOUT | EPOLLET;
+                // ev.data.fd = events[i].data.fd;
+                // if (epoll_ctl(epollfd, EPOLL_CTL_MOD, events[i].data.fd, &ev) == -1)
+                // {
+                //     std::cerr << "epoll_ctl: mod" << std::endl;
+                //     close(events[i].data.fd);
+                //     send_buffers.erase(events[i].data.fd);
+                // }
+            }
         }
         else if (events[i].events & EPOLLOUT)
         {
             if (!send_buffers[events[i].data.fd].empty())
             {
                 do_use_fd(events[i].data.fd, server, send_buffers[events[i].data.fd]);
-                send_buffers[events[i].data.fd].clear(); // Clear the buffer after sending
+                send_buffers[events[i].data.fd].clear();
             }
         }
     }
+
     return EXIT_SUCCESS;
 }
 
