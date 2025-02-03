@@ -71,49 +71,49 @@ std::string Server::getContentType(const std::string &path)
     return "application/octet-stream";
 }
 
-std::string readFile(const std::string &path)
-{
-    // std::cout << "[" << path << "]\n";
-    std::stringstream content;
-    if (path.empty())
-        return "";
-
-    std::ifstream infile(path.c_str(), std::ios::binary);
-    if (!infile.is_open())
-        return "";
-
-    char buffer[CHUNK_SIZE];
-    while (infile.read(buffer, CHUNK_SIZE))
-    {
-        content.write(buffer, CHUNK_SIZE);
-    }
-
-    size_t remaining = infile.gcount();
-    if (remaining > 0)
-    {
-        content.write(buffer, remaining);
-    }
-
-    std::string r = content.str();
-    // std::cout << "---->\n"<< r << "<\n -----" <<  std::endl;
-    return r;
-}
-
-// std::string readFile(const std::string &path, size_t &pos, size_t chunkSize)
+// std::string readFile(const std::string &path)
 // {
+//     // std::cout << "[" << path << "]\n";
+//     std::stringstream content;
+//     if (path.empty())
+//         return "";
+
 //     std::ifstream infile(path.c_str(), std::ios::binary);
 //     if (!infile.is_open())
 //         return "";
 
-//     infile.seekg(pos);
-//     char buffer[chunkSize];
-//     std::memset(buffer, 0, chunkSize);
-//     infile.read(buffer, chunkSize);
-//     size_t bytesRead = infile.gcount();
-//     pos += bytesRead;
+//     char buffer[CHUNK_SIZE];
+//     while (infile.read(buffer, CHUNK_SIZE))
+//     {
+//         content.write(buffer, CHUNK_SIZE);
+//     }
 
-//     return std::string(buffer, bytesRead);
+//     size_t remaining = infile.gcount();
+//     if (remaining > 0)
+//     {
+//         content.write(buffer, remaining);
+//     }
+
+//     std::string r = content.str();
+//     // std::cout << "---->\n"<< r << "<\n -----" <<  std::endl;
+//     return r;
 // }
+
+std::string readFile(const std::string &path, size_t &pos, size_t chunkSize)
+{
+    std::ifstream infile(path.c_str(), std::ios::binary);
+    if (!infile.is_open())
+        return "";
+
+    infile.seekg(pos);
+    char buffer[chunkSize];
+    std::memset(buffer, 0, chunkSize);
+    infile.read(buffer, chunkSize);
+    size_t bytesRead = infile.gcount();
+    pos += bytesRead;
+
+    return std::string(buffer, bytesRead);
+}
 
 std::string parseRequest(std::string request)
 {
@@ -140,6 +140,7 @@ std::string parsRequest_will(std::string request, std::string &method)
         return "";
     std::cout << "Received request: " << request << std::endl;
 
+    // Extract the HTTP method
     size_t methodEnd = request.find(' ');
     if (methodEnd != std::string::npos)
     {
@@ -235,7 +236,7 @@ int do_use_fd(int fd, Server *server, std::string request)
 {
     std::string filePath = server->parsRequest(request);
     std::string content;
-    // size_t pos = 0;
+    size_t pos = 0;
 
     // if (CanBeOpen(filePath) == true)
     // {
@@ -264,7 +265,10 @@ int do_use_fd(int fd, Server *server, std::string request)
     {
         std::ifstream file(filePath.c_str(), std::ios::binary);
         if (!file.is_open())
-            return std::cerr << "Failed to open file: " << filePath << std::endl, delete server,  -1;
+        {
+            std::cerr << "Failed to open file: " << filePath << std::endl;
+            return -1;
+        }
 
         std::string contentType = server->getContentType(filePath);
         std::string httpResponse = server->creatHttpResponse(contentType, "");
@@ -287,6 +291,7 @@ int do_use_fd(int fd, Server *server, std::string request)
             ssize_t sent = send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
             if (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
             {
+                // Handle non-blocking send (needs further logic for partial sends)
                 ssize_t totalSent = 0;
                 while ((size_t)totalSent < chunk.size())
                 {
@@ -295,6 +300,7 @@ int do_use_fd(int fd, Server *server, std::string request)
                     {
                         if (errno == EAGAIN || errno == EWOULDBLOCK)
                         {
+                            // If the socket is not ready for sending, break and try again later
                             break;
                         }
                         else
@@ -307,6 +313,7 @@ int do_use_fd(int fd, Server *server, std::string request)
                 }
                 break;
             }
+            // Note: In a real scenario, handle partial sends and buffer remaining data
             if (sent == -1)
             {
                 std::cerr << "Failed to send data" << std::endl;
@@ -322,9 +329,9 @@ int do_use_fd(int fd, Server *server, std::string request)
         std::string path1 = "/var/www/Errors/404/";
         std::string path2 = "errorPage.html";
         std::string new_path = path1 + path2;
-        // pos = 0;
-        // std::string content = readFile(new_path, pos, CHUNK_SIZE);
-        std::string content = readFile(new_path);
+        pos = 0;
+        std::string content = readFile(new_path, pos, CHUNK_SIZE);
+        // std::string content = readFile(new_path);
         std::string contentType = server->getContentType(new_path);
         std::string notFound = "HTTP/1.1 404 Not Found\r\n"
                                "Content-Type: " +
@@ -412,12 +419,25 @@ int multiplexInputOutput_Post_method(Server *server, int listen_sock, struct epo
             {
                 buffer.append(temp, result);
                 if (buffer.find("\r\n\r\n") != std::string::npos)
-                    break;
+                    break; // End of headers
             }
             if (result <= 0 && errno != EAGAIN)
             {
                 close(events[i].data.fd);
                 send_buffers.erase(events[i].data.fd);
+            }
+            else
+            {
+                // // Process the complete request here
+                // // Modify epoll to monitor EPOLLOUT after response is generated
+                // ev.events = EPOLLOUT | EPOLLET;
+                // ev.data.fd = events[i].data.fd;
+                // if (epoll_ctl(epollfd, EPOLL_CTL_MOD, events[i].data.fd, &ev) == -1)
+                // {
+                //     std::cerr << "epoll_ctl: mod" << std::endl;
+                //     close(events[i].data.fd);
+                //     send_buffers.erase(events[i].data.fd);
+                // }
             }
         }
         else if (events[i].events & EPOLLOUT)
