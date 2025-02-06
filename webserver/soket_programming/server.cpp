@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
+// curl -i -X GET http://localhost:4221/index.html
 #define CHUNK_SIZE 1024
 #define MAX_EVENTS 10
 
@@ -195,10 +195,9 @@ std::string Server::creatHttpResponse(std::string contentType, std::string conte
 {
     (void)content;
     std::string httpResponse = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: " +
-                               contentType + "\r\n"
-                                             "Transfer-Encoding: chunked\r\n"
-                                             "\r\n";
+                               "Content-Type: " + contentType + "\r\n"
+                                "Transfer-Encoding: chunked\r\n"
+                                "\r\n";
     return httpResponse;
 }
 
@@ -220,7 +219,7 @@ void setnonblocking(int fd)
 bool CanBeOpen(std::string &filePath)
 {
     std::string new_path;
-    new_path = "/var/www/Resources/" + filePath;
+    new_path = "/home/mmad/resources/" + filePath;
     std::ifstream file(new_path.c_str());
     if (!file.is_open())
     {
@@ -231,108 +230,108 @@ bool CanBeOpen(std::string &filePath)
     return true;
 }
 
+
 int do_use_fd(int fd, Server *server, std::string request)
 {
     std::string filePath = server->parsRequest(request);
     std::string content;
-    // size_t pos = 0;
-
-    // if (CanBeOpen(filePath) == true)
-    // {
-    //     pos = 0;
-    //     content = readFile(filePath, pos, CHUNK_SIZE);
-    //     // content = readFile(filePath);
-    //     std::string contentType = server->getContentType(filePath);
-    //     std::string httpResponse = server->creatHttpResponse(contentType, content);
-    //     send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL);
-
-    //     while (pos < content.size())
-    //     {
-    //         size_t chunkSize = (CHUNK_SIZE < (content.size() - pos)) ? CHUNK_SIZE : (content.size() - pos);
-    //         std::ostringstream chunkStream;
-    //         chunkStream << std::hex << chunkSize << "\r\n";
-    //         chunkStream.write(content.data() + pos, chunkSize);
-    //         chunkStream << "\r\n";
-    //         std::string chunk = chunkStream.str();
-    //         send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
-    //         pos += chunkSize;
-    //     }
-    //     std::string finalChunk = "0\r\n\r\n";
-    //     send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
-    // }
+    size_t pos;
     if (CanBeOpen(filePath) == true)
     {
-        std::ifstream file(filePath.c_str(), std::ios::binary);
-        if (!file.is_open())
-            return std::cerr << "Failed to open file: " << filePath << std::endl, delete server,  -1;
-
+        pos = 0;
+        // content = readFile(filePath, pos, CHUNK_SIZE);
+        content = readFile(filePath);
+        // std::cout << "[" << content << "]" << std::endl;
         std::string contentType = server->getContentType(filePath);
-        std::string httpResponse = server->creatHttpResponse(contentType, "");
-        send(fd, httpResponse.c_str(), httpResponse.size(), MSG_NOSIGNAL);
+        std::string httpResponse = server->creatHttpResponse(contentType, content);
+        send(fd, httpResponse.c_str(), httpResponse.length(), MSG_NOSIGNAL);
 
-        char buffer[CHUNK_SIZE];
-        while (file)
+        while (pos < content.size())
         {
-            file.read(buffer, CHUNK_SIZE);
-            size_t bytesRead = file.gcount();
-            if (bytesRead == 0)
-                break;
-
+            size_t chunkSize = (CHUNK_SIZE < (content.size() - pos)) ? CHUNK_SIZE : (content.size() - pos);
             std::ostringstream chunkStream;
-            chunkStream << std::hex << bytesRead << "\r\n";
-            chunkStream.write(buffer, bytesRead);
+            chunkStream << std::hex << chunkSize << "\r\n";
+            chunkStream.write(content.data() + pos, chunkSize);
             chunkStream << "\r\n";
             std::string chunk = chunkStream.str();
-
-            ssize_t sent = send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
-            if (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
-            {
-                ssize_t totalSent = 0;
-                while ((size_t)totalSent < chunk.size())
-                {
-                    ssize_t sent = send(fd, chunk.c_str() + totalSent, chunk.size() - totalSent, MSG_NOSIGNAL);
-                    if (sent == -1)
-                    {
-                        if (errno == EAGAIN || errno == EWOULDBLOCK)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            std::cerr << "Failed to send data" << std::endl;
-                            return -1;
-                        }
-                    }
-                    totalSent += sent;
-                }
-                break;
-            }
-            if (sent == -1)
-            {
-                std::cerr << "Failed to send data" << std::endl;
-                break;
-            }
+            send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
+            pos += chunkSize;
         }
-
         std::string finalChunk = "0\r\n\r\n";
         send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
     }
+    // if (CanBeOpen(filePath) == true)
+    // {
+    //     std::ifstream file(filePath.c_str(), std::ios::binary);
+    //     if (!file.is_open())
+    //         return std::cerr << "Failed to open file: " << filePath << std::endl, delete server,  -1;
+
+    //     std::string contentType = server->getContentType(filePath);
+    //     std::string httpResponse = server->creatHttpResponse(contentType, "");
+    //     send(fd, httpResponse.c_str(), httpResponse.size(), MSG_NOSIGNAL);
+
+    //     char buffer[CHUNK_SIZE];
+    //     while (file)
+    //     {
+    //         file.read(buffer, CHUNK_SIZE);
+    //         size_t bytesRead = file.gcount();
+    //         if (bytesRead == 0)
+    //             break;
+
+    //         std::ostringstream chunkStream;
+    //         chunkStream << std::hex << bytesRead << "\r\n";
+    //         chunkStream.write(buffer, bytesRead);
+    //         chunkStream << "\r\n";
+    //         std::string chunk = chunkStream.str();
+    //         std::cout << "[" << chunk << "]" << std::endl;
+    //         ssize_t sent = send(fd, chunk.c_str(), chunk.size(), MSG_NOSIGNAL);
+    //         if (sent == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+    //         {
+    //             ssize_t totalSent = 0;
+    //             while ((size_t)totalSent < chunk.size())
+    //             {
+    //                 ssize_t sent = send(fd, chunk.c_str() + totalSent, chunk.size() - totalSent, MSG_NOSIGNAL);
+    //                 if (sent == -1)
+    //                 {
+    //                     if (errno == EAGAIN || errno == EWOULDBLOCK)
+    //                     {
+    //                         break;
+    //                     }
+    //                     else
+    //                     {
+    //                         std::cerr << "Failed to send data" << std::endl;
+    //                         return -1;
+    //                     }
+    //                 }
+    //                 totalSent += sent;
+    //             }
+    //             break;
+    //         }
+    //         if (sent == -1)
+    //         {
+    //             std::cerr << "Failed to send data" << std::endl;
+    //             break;
+    //         }
+    //     }
+
+    //     std::string finalChunk = "0\r\n\r\n";
+    //     send(fd, finalChunk.c_str(), finalChunk.size(), MSG_NOSIGNAL);
+    //     std::cout << "I was here\n";
+    // }
     else
     {
-        std::string path1 = "/var/www/Errors/404/";
-        std::string path2 = "errorPage.html";
+        std::string path1 = "/home/mmad/resources/";
+        std::string path2 = "error.html";
         std::string new_path = path1 + path2;
-        // pos = 0;
-        // std::string content = readFile(new_path, pos, CHUNK_SIZE);
         std::string content = readFile(new_path);
         std::string contentType = server->getContentType(new_path);
         std::string notFound = "HTTP/1.1 404 Not Found\r\n"
-                               "Content-Type: " +
-                               contentType + "\r\n"
-                                             "Transfer-Encoding: chunked\r\n"
-                                             "\r\n";
+                               "Content-Type: " + contentType + "\r\n"
+                                "Transfer-Encoding: chunked\r\n"
+                                "\r\n";
+        // std::cout << "[" << content << "]" << std::endl;
         send(fd, notFound.c_str(), notFound.length(), MSG_NOSIGNAL);
-
+        // send(fd, content.c_str(), content.length(), MSG_NOSIGNAL);
         size_t pos = 0;
         while (pos < content.size())
         {
@@ -382,7 +381,6 @@ int establishingServer(Server *server)
 int multiplexInputOutput_Post_method(Server *server, int listen_sock, struct epoll_event &ev, sockaddr_in &clientAddress, int epollfd, socklen_t &clientLen, std::map<int, std::string> &send_buffers)
 {
     int conn_sock;
-    // static char buffer[CHUNK_SIZE];
 
     struct epoll_event events[MAX_EVENTS];
     int nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
